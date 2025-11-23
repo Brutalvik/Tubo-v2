@@ -11,7 +11,6 @@ import { EXCHANGE_RATES, TRANSLATIONS } from '../../constants';
 import { getCarHighlights, getNearbyDestinations } from '../../services/geminiService';
 import { CarGallery } from './CarGallery';
 import { BookingCalendar } from './BookingCalendar';
-import ReactMarkdown from 'react-markdown'; // Assuming simple rendering or direct text
 
 const MOCK_REVIEWS = [
     {
@@ -587,131 +586,129 @@ export const CarDetails = ({ car, currency, onClose, language, onCheckout }: Car
                 {/* Right Sticky Sidebar (Desktop) */}
                 <div className="hidden lg:block lg:col-span-1">
                     <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-6 relative" ref={calendarRef}>
-                             <>
-                                <div className="flex items-baseline gap-2 mb-6">
-                                    <span className="text-gray-400 line-through text-lg font-medium">{formatPrice(originalPrice)}</span>
-                                    <span className="text-2xl font-black text-gray-900 dark:text-white">
-                                        {formatPrice(convertedPrice)}
-                                    </span>
-                                    <span className="text-sm text-gray-500">total</span>
+                        <div className="flex items-baseline gap-2 mb-6">
+                            <span className="text-gray-400 line-through text-lg font-medium">{formatPrice(originalPrice)}</span>
+                            <span className="text-2xl font-black text-gray-900 dark:text-white">
+                                {formatPrice(convertedPrice)}
+                            </span>
+                            <span className="text-sm text-gray-500">total</span>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Trip dates</label>
+                                <div 
+                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-gray-700 flex items-center justify-between cursor-pointer hover:border-tubo-orange transition-colors"
+                                    onClick={() => setShowDesktopCalendar(!showDesktopCalendar)}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <CalendarIcon size={16} className="text-tubo-orange" />
+                                        <span>{startDate && endDate ? `${startDate} - ${endDate}` : "Select dates"}</span>
+                                    </div>
                                 </div>
+                                
+                                {/* Desktop Calendar Popover */}
+                                {showDesktopCalendar && (
+                                    <div className="absolute top-32 left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-4 animate-in zoom-in-95">
+                                        <BookingCalendar 
+                                            unavailableDates={unavailableDates}
+                                            startDate={startDate}
+                                            endDate={endDate}
+                                            onRangeChange={handleRangeChange}
+                                        />
+                                        <div className="flex justify-end mt-2">
+                                            <button 
+                                                onClick={() => setShowDesktopCalendar(false)}
+                                                className="text-xs font-bold text-tubo-blue hover:underline"
+                                            >
+                                                Done
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
-                                <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                    <div className="relative">
+                                        <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">Pickup Time</label>
+                                        <input 
+                                            type="time" 
+                                            value={startTime}
+                                            onChange={(e) => setStartTime(e.target.value)}
+                                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-gray-700 outline-none focus:border-tubo-orange"
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">Dropoff Time</label>
+                                        <input 
+                                            type="time" 
+                                            value={endTime}
+                                            onChange={(e) => setEndTime(e.target.value)}
+                                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-gray-700 outline-none focus:border-tubo-orange"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {!isRangeAvailable && (
+                                <div className="text-xs text-red-500 font-bold bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-900/30">
+                                    Dates unavailable. Please select different dates.
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Pickup & return location</label>
+                                <div className="flex items-center justify-between border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 bg-white dark:bg-gray-700 cursor-pointer hover:border-tubo-orange transition-colors">
+                                    <span className="text-sm font-bold text-gray-900 dark:text-white truncate">{car.location}</span>
+                                    <Settings2 size={16} className="text-tubo-orange" />
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={handleProceed}
+                                disabled={!isRangeAvailable}
+                                className={`w-full font-bold py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center ${!isRangeAvailable ? 'bg-gray-300 cursor-not-allowed text-gray-500' : 'bg-tubo-blue hover:bg-black text-white'}`}
+                            >
+                                Proceed
+                            </button>
+                            
+                            <div className="pt-4 space-y-3">
+                                <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-300">
+                                    <ThumbsUp size={14} className="text-gray-400" />
                                     <div>
-                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Trip dates</label>
-                                        <div 
-                                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-gray-700 flex items-center justify-between cursor-pointer hover:border-tubo-orange transition-colors"
-                                            onClick={() => setShowDesktopCalendar(!showDesktopCalendar)}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <CalendarIcon size={16} className="text-tubo-orange" />
-                                                <span>{startDate && endDate ? `${startDate} - ${endDate}` : "Select dates"}</span>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Desktop Calendar Popover */}
-                                        {showDesktopCalendar && (
-                                            <div className="absolute top-32 left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-4 animate-in zoom-in-95">
-                                                <BookingCalendar 
-                                                    unavailableDates={unavailableDates}
-                                                    startDate={startDate}
-                                                    endDate={endDate}
-                                                    onRangeChange={handleRangeChange}
-                                                />
-                                                <div className="flex justify-end mt-2">
-                                                    <button 
-                                                        onClick={() => setShowDesktopCalendar(false)}
-                                                        className="text-xs font-bold text-tubo-blue hover:underline"
-                                                    >
-                                                        Done
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className="grid grid-cols-2 gap-2 mt-2">
-                                            <div className="relative">
-                                                <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">Pickup Time</label>
-                                                <input 
-                                                    type="time" 
-                                                    value={startTime}
-                                                    onChange={(e) => setStartTime(e.target.value)}
-                                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-gray-700 outline-none focus:border-tubo-orange"
-                                                />
-                                            </div>
-                                            <div className="relative">
-                                                <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">Dropoff Time</label>
-                                                <input 
-                                                    type="time" 
-                                                    value={endTime}
-                                                    onChange={(e) => setEndTime(e.target.value)}
-                                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-gray-700 outline-none focus:border-tubo-orange"
-                                                />
-                                            </div>
-                                        </div>
+                                        <span className="font-bold block">Free cancellation</span>
+                                        <span className="text-gray-400">Full refund before Nov 23, 10:00 AM</span>
                                     </div>
-
-                                    {!isRangeAvailable && (
-                                        <div className="text-xs text-red-500 font-bold bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-900/30">
-                                            Dates unavailable. Please select different dates.
-                                        </div>
-                                    )}
-
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-300">
+                                    <Droplets size={14} className="text-gray-400" />
                                     <div>
-                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Pickup & return location</label>
-                                        <div className="flex items-center justify-between border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 bg-white dark:bg-gray-700 cursor-pointer hover:border-tubo-orange transition-colors">
-                                            <span className="text-sm font-bold text-gray-900 dark:text-white truncate">{car.location}</span>
-                                            <Settings2 size={16} className="text-tubo-orange" />
-                                        </div>
+                                        <span className="font-bold block">Distance included</span>
+                                        <span className="text-gray-400">600 mi • $0.32/mi fee for additional miles</span>
                                     </div>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-300">
+                                    <ShieldCheck size={14} className="text-gray-400" />
+                                    <div>
+                                        <span className="font-bold block">Insurance via Travelers</span>
+                                        <span className="text-gray-400">Liability insurance included</span>
+                                    </div>
+                                </div>
+                            </div>
 
-                                    <button 
-                                        onClick={handleProceed}
-                                        disabled={!isRangeAvailable}
-                                        className={`w-full font-bold py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center ${!isRangeAvailable ? 'bg-gray-300 cursor-not-allowed text-gray-500' : 'bg-tubo-blue hover:bg-black text-white'}`}
-                                    >
-                                        Proceed
-                                    </button>
-                                    
-                                    <div className="pt-4 space-y-3">
-                                        <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-300">
-                                            <ThumbsUp size={14} className="text-gray-400" />
-                                            <div>
-                                                <span className="font-bold block">Free cancellation</span>
-                                                <span className="text-gray-400">Full refund before Nov 23, 10:00 AM</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-300">
-                                            <Droplets size={14} className="text-gray-400" />
-                                            <div>
-                                                <span className="font-bold block">Distance included</span>
-                                                <span className="text-gray-400">600 mi • $0.32/mi fee for additional miles</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-300">
-                                            <ShieldCheck size={14} className="text-gray-400" />
-                                            <div>
-                                                <span className="font-bold block">Insurance via Travelers</span>
-                                                <span className="text-gray-400">Liability insurance included</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                                <button 
+                                    onClick={() => setIsFav(!isFav)}
+                                    className="w-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                >
+                                    <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : ""} /> 
+                                    {isFav ? "Remove from favorites" : "Add to favorites"}
+                                </button>
+                            </div>
 
-                                    <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                                        <button 
-                                            onClick={() => setIsFav(!isFav)}
-                                            className="w-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                                        >
-                                            <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : ""} /> 
-                                            {isFav ? "Remove from favorites" : "Add to favorites"}
-                                        </button>
-                                    </div>
-
-                                    <div className="flex justify-center gap-4 text-xs text-gray-400 pt-2">
-                                        <button onClick={() => alert("Report feature unavailable in demo")} className="hover:underline">Report listing</button>
-                                        <button onClick={() => alert("Full policy unavailable in demo")} className="hover:underline">Cancellation policy</button>
-                                    </div>
-                                </>
+                            <div className="flex justify-center gap-4 text-xs text-gray-400 pt-2">
+                                <button onClick={() => alert("Report feature unavailable in demo")} className="hover:underline">Report listing</button>
+                                <button onClick={() => alert("Full policy unavailable in demo")} className="hover:underline">Cancellation policy</button>
+                            </div>
                         </div>
                     </div>
                 </div>
