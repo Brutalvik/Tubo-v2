@@ -3,109 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign in - Accounts</title>
+    <title>Sign in - Google Accounts</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { font-family: 'Roboto', arial, sans-serif; }
+        .google-btn {
+            background-color: #1a73e8;
+            color: white;
+            transition: background-color 0.2s;
+        }
+        .google-btn:hover {
+            background-color: #1557b0;
+        }
     </style>
 </head>
-<body class="bg-gray-50 h-screen flex items-center justify-center">
-    <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border border-gray-200" id="main-container">
-        <div class="text-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800" id="provider-title">Sign in</h1>
-            <p class="text-sm text-gray-500">Choose an account</p>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+    <div class="bg-white p-10 rounded-lg shadow-md max-w-[450px] w-full border border-gray-300 flex flex-col min-h-[500px]" id="main-container">
+        
+        <!-- Google Logo -->
+        <div class="flex justify-center mb-4">
+            <svg viewBox="0 0 75 24" width="75" height="24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="BFr46e">
+                <g id="qaEJec">
+                    <path fill="#4285F4" d="M18.5,0 L18.5,18.5 L0,18.5 L0,0 L18.5,0 Z M18.5,0 L18.5,18.5 L0,18.5 L0,0 L18.5,0 Z M18.5,0 L18.5,18.5 L0,18.5 L0,0 L18.5,0 Z M18.5,0 L18.5,18.5 L0,18.5 L0,0 L18.5,0 Z" opacity="0"></path>
+                    <path fill="#4285F4" d="M11.3,10.8 l0,0 L6.6,10.8 L6.6,13.8 L9.3,13.8 c-0.1,0.6 -0.4,1.2 -0.8,1.6 c-0.6,0.6 -1.4,1 -2.5,1 c-2.1,0 -3.8,-1.7 -3.8,-3.8 c0,-2.1 1.7,-3.8 3.8,-3.8 c1.1,0 2.2,0.4 2.9,1.2 l2.2,-2.2 C10,1.7 8.1,0.9 6,0.9 C2.7,0.9 0,3.6 0,6.9 c0,3.3 2.7,6 6,6 c1.7,0 3.3,-0.6 4.4,-1.8 c1.2,-1.2 1.6,-2.8 1.6,-4.2 C12,6.5 12,6.1 11.9,5.8 L11.3,10.8 L11.3,10.8 Z"></path>
+                    <path fill="#4285F4" d="M15.8,3.9 c-2.1,0 -3.7,1.7 -3.7,3.9 c0,2.1 1.6,3.9 3.7,3.9 c2.1,0 3.7,-1.7 3.7,-3.9 C19.5,5.6 17.9,3.9 15.8,3.9 L15.8,3.9 Z M15.8,10.5 c-1.3,0 -2.4,-1 -2.4,-2.7 c0,-1.6 1.1,-2.7 2.4,-2.7 c1.3,0 2.4,1 2.4,2.7 C18.2,9.5 17.1,10.5 15.8,10.5 L15.8,10.5 Z"></path>
+                    <path fill="#4285F4" d="M24.2,3.9 c-2.1,0 -3.7,1.7 -3.7,3.9 c0,2.1 1.6,3.9 3.7,3.9 c2.1,0 3.7,-1.7 3.7,-3.9 C27.9,5.6 26.3,3.9 24.2,3.9 L24.2,3.9 Z M24.2,10.5 c-1.3,0 -2.4,-1 -2.4,-2.7 c0,-1.6 1.1,-2.7 2.4,-2.7 c1.3,0 2.4,1 2.4,2.7 C26.6,9.5 25.5,10.5 24.2,10.5 L24.2,10.5 Z"></path>
+                    <path fill="#4285F4" d="M33.7,3.9 c-2,0 -3.5,1.7 -3.5,3.9 c0,2.1 1.4,3.9 3.5,3.9 c0.9,0 1.7,-0.4 2.1,-0.9 l0.1,0 l0,0.8 c0,1.5 -0.8,2.3 -2.1,2.3 c-1.1,0 -1.7,-0.7 -2,-1.3 l-1.2,0.5 c0.4,1 1.5,2.1 3.2,2.1 c2.1,0 3.7,-1.2 3.7,-4.1 L37.4,4.1 L36.2,4.1 l0,0.9 l-0.1,0 C35.7,4.4 34.8,3.9 33.7,3.9 L33.7,3.9 Z M34,10.5 c-1.3,0 -2.3,-1 -2.3,-2.7 c0,-1.6 1,-2.7 2.3,-2.7 c1.2,0 2.2,1 2.2,2.7 C36.2,9.5 35.2,10.5 34,10.5 L34,10.5 Z"></path>
+                    <path fill="#4285F4" d="M39.6,0.9 L39.6,11.5 L38.3,11.5 L38.3,0.9 L39.6,0.9 Z"></path>
+                    <path fill="#4285F4" d="M45.5,9.3 l-3.1,-2.1 c0.5,-0.7 1.2,-1.2 2.1,-1.2 c1.1,0 1.9,0.5 2.5,1.3 L45.5,9.3 L45.5,9.3 Z M42.2,10.4 l4.3,2.2 c-0.7,1.4 -2.4,2.2 -4.2,2.2 c-2.8,0 -5,-2.1 -5,-5.5 c0,-3.3 2.1,-5.5 4.8,-5.5 c2.7,0 4.2,2.1 4.2,5.2 l0,0.3 L40,9.4 C40.2,10.6 41,11.2 42.2,10.4 L42.2,10.4 Z"></path>
+                </g>
+            </svg>
         </div>
 
-        <div class="space-y-3">
-            <!-- Account 1 -->
-            <button onclick="selectAccount('user1')" class="w-full flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all text-left group">
-                <div class="h-10 w-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-lg">
-                    J
-                </div>
-                <div>
-                    <p class="font-bold text-gray-800 text-sm">John Doe</p>
-                    <p class="text-xs text-gray-500">john.doe@example.com</p>
-                </div>
-            </button>
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-normal text-gray-900 mb-2">Sign in</h1>
+            <p class="text-base text-gray-900">to continue to Tubo</p>
+        </div>
 
-            <!-- Account 2 -->
-            <button onclick="selectAccount('user2')" class="w-full flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all text-left group">
-                <img src="https://i.pravatar.cc/150?u=sarah" class="h-10 w-10 rounded-full object-cover" alt="Sarah">
-                <div>
-                    <p class="font-bold text-gray-800 text-sm">Sarah Smith</p>
-                    <p class="text-xs text-gray-500">sarah.smith@example.com</p>
+        <div id="step-1" class="flex-1 flex flex-col">
+            <div class="mb-8">
+                <div class="relative">
+                    <input type="email" id="input-email" class="peer w-full border border-gray-300 rounded px-3 pt-5 pb-2 outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all" placeholder=" " required />
+                    <label for="input-email" class="absolute left-3 top-4 text-gray-500 text-base transition-all peer-focus:top-1 peer-focus:text-xs peer-focus:text-blue-600 peer-[&:not(:placeholder-shown)]:top-1 peer-[&:not(:placeholder-shown)]:text-xs">Email or phone</label>
                 </div>
-            </button>
+                <div class="mt-2">
+                    <a href="#" class="text-sm font-bold text-blue-700 hover:text-blue-800 rounded">Forgot email?</a>
+                </div>
+            </div>
 
-            <!-- Account 3 -->
-            <button onclick="selectAccount('new')" class="w-full flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all text-left group">
-                <div class="h-10 w-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
+            <div class="mt-auto flex justify-end items-center gap-6">
+                <button class="text-sm font-bold text-blue-700 hover:text-blue-800 rounded">Create account</button>
+                <button onclick="nextStep()" class="google-btn px-6 py-2 rounded font-bold text-sm">Next</button>
+            </div>
+        </div>
+
+        <div id="step-2" class="hidden flex-1 flex-col">
+            <div class="border border-gray-200 rounded-full px-2 py-1 pr-4 inline-flex items-center gap-2 mb-8 self-center cursor-pointer hover:bg-gray-50" onclick="prevStep()">
+                <div class="h-6 w-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-bold" id="avatar-preview">U</div>
+                <span class="text-sm font-medium text-gray-700" id="email-display">user@example.com</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </div>
+
+            <div class="mb-4">
+                 <div class="relative">
+                    <input type="text" id="input-name" class="peer w-full border border-gray-300 rounded px-3 pt-5 pb-2 outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all" placeholder=" " value="Tubo Guest" required />
+                    <label for="input-name" class="absolute left-3 top-4 text-gray-500 text-base transition-all peer-focus:top-1 peer-focus:text-xs peer-focus:text-blue-600 peer-[&:not(:placeholder-shown)]:top-1 peer-[&:not(:placeholder-shown)]:text-xs">Your Name (for profile)</label>
                 </div>
-                <div>
-                    <p class="font-bold text-gray-800 text-sm">Use another account</p>
-                </div>
-            </button>
+                 <p class="text-xs text-gray-500 mt-2">Since this is a demo environment, enter your display name here.</p>
+            </div>
+            
+            <div class="mt-auto flex justify-end">
+                <button onclick="finishLogin()" class="google-btn px-6 py-2 rounded font-bold text-sm">Sign in</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // Get provider from URL
         const params = new URLSearchParams(window.location.search);
         const provider = params.get('provider') || 'google';
         
-        document.getElementById('provider-title').innerText = `Sign in with ${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
+        // Adjust UI based on provider (Apple vs Google)
+        if (provider === 'apple') {
+            // Minimal changes to simulate Apple look if desired, but functionality remains
+            document.title = "Sign in with Apple ID";
+        }
 
-        function selectAccount(type) {
-            let userData = {};
-
-            if (type === 'user1') {
-                userData = {
-                    provider: provider,
-                    email: 'john.doe@example.com',
-                    firstName: 'John',
-                    lastName: 'Doe',
-                    photoURL: '' // Intentionally empty to test fallback
-                };
-            } else if (type === 'user2') {
-                userData = {
-                    provider: provider,
-                    email: 'sarah.smith@example.com',
-                    firstName: 'Sarah',
-                    lastName: 'Smith',
-                    photoURL: 'https://i.pravatar.cc/150?u=sarah'
-                };
+        const emailInput = document.getElementById('input-email');
+        const nameInput = document.getElementById('input-name');
+        
+        function nextStep() {
+            if(emailInput.checkValidity() && emailInput.value) {
+                document.getElementById('step-1').classList.add('hidden');
+                document.getElementById('step-2').classList.remove('hidden');
+                document.getElementById('step-2').classList.add('flex');
+                
+                document.getElementById('email-display').innerText = emailInput.value;
+                document.getElementById('avatar-preview').innerText = emailInput.value.charAt(0).toUpperCase();
+                
+                // Pre-fill name based on email for convenience
+                const namePart = emailInput.value.split('@')[0];
+                const cleanName = namePart.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                nameInput.value = cleanName;
             } else {
-                // Generate random
-                const rand = Math.floor(Math.random() * 1000);
-                userData = {
-                    provider: provider,
-                    email: `user${rand}@example.com`,
-                    firstName: 'New',
-                    lastName: `User${rand}`,
-                    photoURL: ''
-                };
+                emailInput.reportValidity();
             }
+        }
 
-            // Simulate network delay then send back
-            document.getElementById('main-container').innerHTML = `
-                <div class="flex flex-col items-center justify-center py-10">
-                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
-                    <p class="text-gray-500 text-sm">Signing in...</p>
+        function prevStep() {
+            document.getElementById('step-2').classList.add('hidden');
+            document.getElementById('step-2').classList.remove('flex');
+            document.getElementById('step-1').classList.remove('hidden');
+        }
+
+        function finishLogin() {
+             document.getElementById('main-container').innerHTML = `
+                <div class="flex flex-col items-center justify-center py-20 h-full flex-1">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-6"></div>
+                    <p class="text-gray-500 text-base">Signing in...</p>
                 </div>
             `;
+
+            const userData = {
+                provider: provider,
+                email: emailInput.value,
+                firstName: nameInput.value.split(' ')[0],
+                lastName: nameInput.value.split(' ').slice(1).join(' ') || '',
+                photoURL: `https://i.pravatar.cc/150?u=${emailInput.value}` // Consistent avatar based on email
+            };
 
             setTimeout(() => {
                 if (window.opener) {
                     window.opener.postMessage({ type: 'OAUTH_RESPONSE', payload: userData }, '*');
                     window.close();
                 } else {
-                    alert("Cannot communicate with main window. Please ensure popups are allowed.");
+                    alert("Login successful. Close this window.");
                 }
             }, 1000);
         }
+
+        // Allow Enter key
+        emailInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                nextStep();
+            }
+        });
     </script>
 </body>
 </html>
