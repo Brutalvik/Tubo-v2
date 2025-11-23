@@ -13,11 +13,12 @@ interface BookingConfirmationViewProps {
     };
     totalPrice: number;
     currency: Currency;
+    bookingReference: string;
     onHome: () => void;
     onTrips: () => void;
 }
 
-export const BookingConfirmationView = ({ car, bookingData, totalPrice, currency, onHome, onTrips }: BookingConfirmationViewProps) => {
+export const BookingConfirmationView = ({ car, bookingData, totalPrice, currency, bookingReference, onHome, onTrips }: BookingConfirmationViewProps) => {
     const rate = EXCHANGE_RATES[currency] || 1;
     
     const formatPrice = (price: number) => {
@@ -29,9 +30,6 @@ export const BookingConfirmationView = ({ car, bookingData, totalPrice, currency
         const d = new Date(dateStr);
         return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     };
-
-    // Generate random reference code
-    const bookingRef = `TB-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
 
     return (
         <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 z-50 overflow-y-auto flex flex-col items-center justify-center p-6">
@@ -53,7 +51,7 @@ export const BookingConfirmationView = ({ car, bookingData, totalPrice, currency
                     {/* Booking Ref */}
                     <div className="text-center mb-6">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">Booking Reference</span>
-                        <span className="text-xl font-black text-gray-900 dark:text-white tracking-wider font-mono bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-lg">{bookingRef}</span>
+                        <span className="text-xl font-black text-gray-900 dark:text-white tracking-wider font-mono bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-lg">{bookingReference}</span>
                     </div>
 
                     {/* Car Card */}

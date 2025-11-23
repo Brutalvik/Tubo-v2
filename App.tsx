@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { UserRole, Currency, Car } from './types';
+
+import React, { useState, useEffect } from 'react';
+import { UserRole, Currency, Car, UserProfile, Booking } from './types';
 import { INITIAL_CARS, TRANSLATIONS } from './constants';
+import { authService } from './services/authService';
 
 // Layout
 import { DesktopHeader } from './components/layout/DesktopHeader';
@@ -9,6 +11,9 @@ import { MobileBottomNav } from './components/layout/MobileBottomNav';
 
 // Common
 import { SplashScreen } from './components/common/SplashScreen';
+
+// Auth
+import { AuthModal } from './components/auth/AuthModal';
 
 // Guest Components
 import { GuestHome } from './components/guest/GuestHome';
@@ -28,6 +33,7 @@ import { MenuView } from './components/host/MenuView';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [role, setRole] = useState<UserRole>('GUEST');
   const [activeTab, setActiveTab] = useState('home');
   const [currency, setCurrency] = useState<Currency>('USD'); 
@@ -35,6 +41,7 @@ export default function App() {
   const [isHostRegistered, setIsHostRegistered] = useState(false);
   const [searchLocation, setSearchLocation] = useState("");
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   
   // Booking State
   const [bookingData, setBookingData] = useState<{
@@ -46,15 +53,34 @@ export default function App() {
   
   // Confirmation State
   const [confirmedBooking, setConfirmedBooking] = useState<{
-    price: number;
+    bookingReference: string;
+    finalPrice: number;
   } | null>(null);
+
+  // My Bookings History
+  const [myBookings, setMyBookings] = useState<Booking[]>([]);
   
   // Data State
   const [cars, setCars] = useState<Car[]>(INITIAL_CARS);
 
   const t = TRANSLATIONS[language as keyof typeof TRANSLATIONS] || TRANSLATIONS['English'];
 
+  // Initialize Auth
+  useEffect(() => {
+    const user = authService.getCurrentUser();
+    if (user) {
+        setCurrentUser(user);
+        setIsHostRegistered(user.isHostRegistered);
+    }
+    // Simulate initial loading
+    setTimeout(() => setLoading(false), 2000);
+  }, []);
+
   const handleRoleSwitch = (newRole: UserRole) => {
+    if (!currentUser) {
+        setShowAuthModal(true);
+        return;
+    }
     setRole(newRole);
     if (newRole === 'HOST') {
       setActiveTab('dashboard');
@@ -66,6 +92,10 @@ export default function App() {
   };
 
   const handleBecomeHost = () => {
+      if (!currentUser) {
+          setShowAuthModal(true);
+          return;
+      }
       setLoading(true);
       setTimeout(() => {
           setIsHostRegistered(true);
@@ -76,6 +106,20 @@ export default function App() {
 
   const handleAddListing = (newCar: Car) => {
     setCars([...cars, newCar]);
+  };
+
+  const handleLoginSuccess = (user: UserProfile) => {
+      setCurrentUser(user);
+      setIsHostRegistered(user.isHostRegistered);
+  };
+
+  const handleLogout = async () => {
+      setLoading(true);
+      await authService.logout();
+      setCurrentUser(null);
+      setRole('GUEST');
+      setActiveTab('home');
+      setLoading(false);
   };
 
   // Filter cars based on search location
@@ -90,6 +134,11 @@ export default function App() {
   };
   
   const handleProceedCheckout = (data: { startDate: string, endDate: string, startTime: string, endTime: string }) => {
+      if (!currentUser) {
+          setShowAuthModal(true);
+          // Ideally save the intent to continue after login, but simple for now
+          return;
+      }
       setBookingData(data);
   };
   
@@ -98,9 +147,27 @@ export default function App() {
   };
 
   const handleConfirmBooking = (finalPrice: number) => {
-      // Set confirmation data to show the success screen
-      // We do NOT clear selectedCar or bookingData yet, so we can display them in the confirmation view
-      setConfirmedBooking({ price: finalPrice });
+      if (!bookingData || !selectedCar) return;
+
+      const newRef = `TB-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+      
+      const newBooking: Booking = {
+          id: `bk_${Date.now()}`,
+          referenceCode: newRef,
+          car: selectedCar,
+          startDate: bookingData.startDate,
+          endDate: bookingData.endDate,
+          totalPrice: finalPrice,
+          currency: currency,
+          status: 'upcoming',
+          bookedAt: new Date().toISOString()
+      };
+
+      setMyBookings(prev => [newBooking, ...prev]);
+      setConfirmedBooking({
+          bookingReference: newRef,
+          finalPrice: finalPrice
+      });
   };
   
   const handleFinishBookingFlow = (destination: 'home' | 'trips') => {
@@ -123,8 +190,9 @@ export default function App() {
           <BookingConfirmationView 
              car={selectedCar}
              bookingData={bookingData}
-             totalPrice={confirmedBooking.price}
+             totalPrice={confirmedBooking.finalPrice}
              currency={currency}
+             bookingReference={confirmedBooking.bookingReference}
              onHome={() => handleFinishBookingFlow('home')}
              onTrips={() => handleFinishBookingFlow('trips')}
           />
@@ -150,13 +218,19 @@ export default function App() {
   return (
     <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100">
       
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+        onLoginSuccess={handleLoginSuccess} 
+      />
+
       {/* Desktop Header - Only visible on md+ */}
       <DesktopHeader 
         role={role} 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         t={t} 
-        userImage="https://i.pravatar.cc/150?u=main"
+        userImage={currentUser?.photoURL || "https://i.pravatar.cc/150?u=default"}
       />
 
       {/* Main Scrollable Content Area */}
@@ -194,10 +268,11 @@ export default function App() {
 
                   {activeTab === 'favorites' && <FavoritesView t={t} />}
 
-                  {activeTab === 'trips' && <TripsView t={t} />}
+                  {activeTab === 'trips' && <TripsView t={t} bookings={myBookings} />}
                   
                   {activeTab === 'profile' && (
                      <ProfileView 
+                        user={currentUser}
                         t={t}
                         currency={currency}
                         setCurrency={setCurrency}
@@ -206,6 +281,8 @@ export default function App() {
                         isHostRegistered={isHostRegistered}
                         handleRoleSwitch={handleRoleSwitch}
                         handleBecomeHost={handleBecomeHost}
+                        onLogin={() => setShowAuthModal(true)}
+                        onLogout={handleLogout}
                      />
                   )}
                 </>
@@ -233,7 +310,8 @@ export default function App() {
             role={role} 
             activeTab={activeTab} 
             setActiveTab={setActiveTab} 
-            t={t} 
+            t={t}
+            userImage={currentUser?.photoURL}
         />
       )}
     </div>

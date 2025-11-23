@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Home, Heart, Calendar, MessageSquare, Car, Menu } from 'lucide-react';
+import { Home, Heart, Calendar, MessageSquare, Car, Menu, User } from 'lucide-react';
 import { UserRole } from '../../types';
 import { NavTab } from '../common/NavTab';
 
@@ -8,9 +9,10 @@ interface MobileBottomNavProps {
     activeTab: string;
     setActiveTab: (t: string) => void;
     t: any;
+    userImage?: string;
 }
 
-export const MobileBottomNav = ({ role, activeTab, setActiveTab, t }: MobileBottomNavProps) => (
+export const MobileBottomNav = ({ role, activeTab, setActiveTab, t, userImage }: MobileBottomNavProps) => (
     <nav className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 fixed bottom-0 w-full pb-safe-bottom z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
         <div className="flex justify-between items-center px-6 py-2 max-w-md mx-auto">
         {role === 'GUEST' ? (
@@ -19,11 +21,11 @@ export const MobileBottomNav = ({ role, activeTab, setActiveTab, t }: MobileBott
             <NavTab icon={<Heart />} label={t.favorites} active={activeTab === 'favorites'} onClick={() => setActiveTab('favorites')} />
             <NavTab icon={<Calendar />} label={t.trips} active={activeTab === 'trips'} onClick={() => setActiveTab('trips')} />
             <NavTab 
-                icon={<img src="https://i.pravatar.cc/150?u=main" className="w-full h-full object-cover" alt="Profile" />} 
+                icon={userImage ? <img src={userImage} className="w-full h-full object-cover" alt="Profile" /> : <User />} 
                 label={t.profile} 
                 active={activeTab === 'profile'} 
                 onClick={() => setActiveTab('profile')} 
-                isAvatar={true}
+                isAvatar={!!userImage}
             />
             </>
         ) : (

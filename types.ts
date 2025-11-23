@@ -1,4 +1,5 @@
 
+
 export type UserRole = 'GUEST' | 'HOST';
 
 export type Currency = 'IDR' | 'MYR' | 'SGD' | 'CAD' | 'USD';
@@ -11,6 +12,8 @@ export interface UserProfile {
   role: UserRole;
   currency: Currency;
   isHostRegistered: boolean;
+  phoneNumber?: string;
+  joinDate?: string;
 }
 
 export interface Car {
@@ -49,6 +52,18 @@ export interface Conversation {
 
 export interface ExchangeRates {
   [key: string]: number;
+}
+
+export interface Booking {
+    id: string;
+    referenceCode: string;
+    car: Car;
+    startDate: string;
+    endDate: string;
+    totalPrice: number;
+    currency: Currency;
+    status: 'upcoming' | 'completed' | 'cancelled';
+    bookedAt: string;
 }
 
 export interface BookingRequest {
