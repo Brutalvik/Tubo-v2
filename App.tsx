@@ -16,6 +16,8 @@ import { CarDetails } from './components/guest/CarDetails';
 import { ProfileView } from './components/guest/ProfileView';
 import { FavoritesView } from './components/guest/FavoritesView';
 import { TripsView } from './components/guest/TripsView';
+import { CheckoutView } from './components/guest/CheckoutView';
+import { BookingConfirmationView } from './components/guest/BookingConfirmationView';
 
 // Host Components
 import { HostDashboard } from './components/host/HostDashboard';
@@ -34,6 +36,19 @@ export default function App() {
   const [searchLocation, setSearchLocation] = useState("");
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   
+  // Booking State
+  const [bookingData, setBookingData] = useState<{
+      startDate: string;
+      endDate: string;
+      startTime: string;
+      endTime: string;
+  } | null>(null);
+  
+  // Confirmation State
+  const [confirmedBooking, setConfirmedBooking] = useState<{
+    price: number;
+  } | null>(null);
+  
   // Data State
   const [cars, setCars] = useState<Car[]>(INITIAL_CARS);
 
@@ -44,6 +59,7 @@ export default function App() {
     if (newRole === 'HOST') {
       setActiveTab('dashboard');
       setSelectedCar(null);
+      setBookingData(null);
     } else {
       setActiveTab('home');
     }
@@ -72,9 +88,63 @@ export default function App() {
       setSearchLocation(location);
       setSelectedCar(null);
   };
+  
+  const handleProceedCheckout = (data: { startDate: string, endDate: string, startTime: string, endTime: string }) => {
+      setBookingData(data);
+  };
+  
+  const handleBackFromCheckout = () => {
+      setBookingData(null);
+  };
+
+  const handleConfirmBooking = (finalPrice: number) => {
+      // Set confirmation data to show the success screen
+      // We do NOT clear selectedCar or bookingData yet, so we can display them in the confirmation view
+      setConfirmedBooking({ price: finalPrice });
+  };
+  
+  const handleFinishBookingFlow = (destination: 'home' | 'trips') => {
+      // Reset all booking states
+      setBookingData(null);
+      setSelectedCar(null);
+      setConfirmedBooking(null);
+      
+      // Navigate
+      setActiveTab(destination);
+  };
 
   if (loading) {
     return <SplashScreen onFinish={() => setLoading(false)} language={language} />;
+  }
+  
+  // Booking Confirmation View (Highest Priority)
+  if (confirmedBooking && selectedCar && bookingData) {
+      return (
+          <BookingConfirmationView 
+             car={selectedCar}
+             bookingData={bookingData}
+             totalPrice={confirmedBooking.price}
+             currency={currency}
+             onHome={() => handleFinishBookingFlow('home')}
+             onTrips={() => handleFinishBookingFlow('trips')}
+          />
+      );
+  }
+
+  // Checkout View Logic (Takes over full screen)
+  if (bookingData && selectedCar) {
+      return (
+          <CheckoutView 
+              car={selectedCar}
+              startDate={bookingData.startDate}
+              endDate={bookingData.endDate}
+              startTime={bookingData.startTime}
+              endTime={bookingData.endTime}
+              currency={currency}
+              onBack={handleBackFromCheckout}
+              onBook={handleConfirmBooking}
+          />
+      );
   }
 
   return (
@@ -106,6 +176,7 @@ export default function App() {
                     currency={currency} 
                     onClose={() => setSelectedCar(null)} 
                     language={language} 
+                    onCheckout={handleProceedCheckout}
                 />
               ) : (
                 <>

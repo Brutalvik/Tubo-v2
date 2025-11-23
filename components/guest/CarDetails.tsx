@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     ArrowLeft, Share2, Heart, Star, Sparkles, 
@@ -64,7 +63,15 @@ const RATING_BREAKDOWN = [
     { label: "Accuracy", score: 4.9 },
 ];
 
-export const CarDetails = ({ car, currency, onClose, language }: { car: Car, currency: Currency, onClose: () => void, language: string }) => {
+interface CarDetailsProps {
+    car: Car;
+    currency: Currency;
+    onClose: () => void;
+    language: string;
+    onCheckout: (data: { startDate: string, endDate: string, startTime: string, endTime: string }) => void;
+}
+
+export const CarDetails = ({ car, currency, onClose, language, onCheckout }: CarDetailsProps) => {
     const t = TRANSLATIONS[language as keyof typeof TRANSLATIONS] || TRANSLATIONS['English'];
     const rate = EXCHANGE_RATES[currency] || 1;
     const convertedPrice = Math.round(car.pricePerDayIdr * rate);
@@ -81,7 +88,6 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
     const [showAllFeatures, setShowAllFeatures] = useState(false);
     const [visibleReviews, setVisibleReviews] = useState(3);
     const [showMobileBooking, setShowMobileBooking] = useState(false);
-    const [bookingStatus, setBookingStatus] = useState<'idle' | 'processing' | 'success'>('idle');
     const [activeTab, setActiveTab] = useState('overview');
     
     // Date state for widget
@@ -95,7 +101,6 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
     const calendarRef = useRef<HTMLDivElement>(null);
 
     // Mock Unavailable Dates for testing (e.g. for the first car in the list or specific ID)
-    // In a real app, this comes from the backend
     const unavailableDates = (car.id === 'bali_1' || car.id === 'jkt_1') 
         ? ['2025-11-28', '2025-11-29'] 
         : [];
@@ -191,15 +196,12 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
 
     const handleProceed = () => {
         if (!isRangeAvailable) return;
-        setBookingStatus('processing');
-        setTimeout(() => {
-            setBookingStatus('success');
-            setTimeout(() => {
-                setBookingStatus('idle');
-                setShowMobileBooking(false);
-                // In a real app, navigate to checkout or trips page
-            }, 2000);
-        }, 1500);
+        onCheckout({
+            startDate,
+            endDate,
+            startTime,
+            endTime
+        });
     };
 
     const scrollToSection = (id: string) => {
@@ -525,13 +527,6 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                 {/* Right Sticky Sidebar (Desktop) */}
                 <div className="hidden lg:block lg:col-span-1">
                     <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-6 relative" ref={calendarRef}>
-                         {bookingStatus === 'success' ? (
-                            <div className="flex flex-col items-center justify-center py-10 text-center animate-in fade-in zoom-in">
-                                <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-                                <h3 className="text-xl font-black text-gray-900 dark:text-white">Booking Request Sent!</h3>
-                                <p className="text-sm text-gray-500 mt-2">Wait for host confirmation.</p>
-                            </div>
-                         ) : (
                              <>
                                 <div className="flex items-baseline gap-2 mb-6">
                                     <span className="text-gray-400 line-through text-lg font-medium">{formatPrice(originalPrice)}</span>
@@ -612,10 +607,10 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
 
                                     <button 
                                         onClick={handleProceed}
-                                        disabled={bookingStatus === 'processing' || !isRangeAvailable}
+                                        disabled={!isRangeAvailable}
                                         className={`w-full font-bold py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center ${!isRangeAvailable ? 'bg-gray-300 cursor-not-allowed text-gray-500' : 'bg-tubo-blue hover:bg-black text-white'}`}
                                     >
-                                        {bookingStatus === 'processing' ? 'Processing...' : 'Proceed'}
+                                        Proceed
                                     </button>
                                     
                                     <div className="pt-4 space-y-3">
@@ -657,7 +652,6 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                                         <button onClick={() => alert("Full policy unavailable in demo")} className="hover:underline">Cancellation policy</button>
                                     </div>
                                 </>
-                             )}
                         </div>
                     </div>
                 </div>
@@ -703,67 +697,59 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                             </button>
                          </div>
 
-                         {bookingStatus === 'success' ? (
-                            <div className="flex flex-col items-center justify-center py-10 text-center">
-                                <CheckCircle className="h-16 w-16 text-green-500 mb-4 animate-bounce" />
-                                <h3 className="text-xl font-black text-gray-900 dark:text-white">Booking Request Sent!</h3>
-                                <p className="text-sm text-gray-500 mt-2">We've notified the host.</p>
+                        <div className="space-y-5">
+                            <div>
+                                <BookingCalendar 
+                                    unavailableDates={unavailableDates}
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                    onRangeChange={handleRangeChange}
+                                />
                             </div>
-                         ) : (
-                            <div className="space-y-5">
+
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <BookingCalendar 
-                                        unavailableDates={unavailableDates}
-                                        startDate={startDate}
-                                        endDate={endDate}
-                                        onRangeChange={handleRangeChange}
+                                    <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Pickup</label>
+                                    <input 
+                                        type="time" 
+                                        value={startTime}
+                                        onChange={(e) => setStartTime(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
                                     />
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Pickup</label>
-                                        <input 
-                                            type="time" 
-                                            value={startTime}
-                                            onChange={(e) => setStartTime(e.target.value)}
-                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Dropoff</label>
-                                        <input 
-                                            type="time" 
-                                            value={endTime}
-                                            onChange={(e) => setEndTime(e.target.value)}
-                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
-                                        />
-                                    </div>
+                                <div>
+                                    <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Dropoff</label>
+                                    <input 
+                                        type="time" 
+                                        value={endTime}
+                                        onChange={(e) => setEndTime(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
+                                    />
                                 </div>
-
-                                {!isRangeAvailable && (
-                                    <div className="text-sm text-red-500 font-bold bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/30 flex items-center gap-2">
-                                        <AlertTriangle size={16} />
-                                        Dates unavailable.
-                                    </div>
-                                )}
-
-                                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl flex justify-between items-center">
-                                     <span className="font-bold text-gray-900 dark:text-white">Total price</span>
-                                     <span className="font-black text-xl text-tubo-blue dark:text-white">
-                                        {formatPrice(convertedPrice)}
-                                     </span>
-                                </div>
-
-                                <button 
-                                    onClick={handleProceed}
-                                    disabled={bookingStatus === 'processing' || !isRangeAvailable}
-                                    className={`w-full font-bold py-4 rounded-xl text-lg shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all ${!isRangeAvailable ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none' : 'bg-tubo-blue hover:bg-black text-white'}`}
-                                >
-                                    {bookingStatus === 'processing' ? 'Processing...' : 'Proceed'}
-                                </button>
                             </div>
-                         )}
+
+                            {!isRangeAvailable && (
+                                <div className="text-sm text-red-500 font-bold bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/30 flex items-center gap-2">
+                                    <AlertTriangle size={16} />
+                                    Dates unavailable.
+                                </div>
+                            )}
+
+                            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl flex justify-between items-center">
+                                    <span className="font-bold text-gray-900 dark:text-white">Total price</span>
+                                    <span className="font-black text-xl text-tubo-blue dark:text-white">
+                                    {formatPrice(convertedPrice)}
+                                    </span>
+                            </div>
+
+                            <button 
+                                onClick={handleProceed}
+                                disabled={!isRangeAvailable}
+                                className={`w-full font-bold py-4 rounded-xl text-lg shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all ${!isRangeAvailable ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none' : 'bg-tubo-blue hover:bg-black text-white'}`}
+                            >
+                                Proceed
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
