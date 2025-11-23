@@ -1,8 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserRole, Currency, Car, UserProfile, Booking } from './types';
 import { INITIAL_CARS, TRANSLATIONS } from './constants';
 import { authService } from './services/authService';
+import { auth, db } from './firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Layout
 import { DesktopHeader } from './components/layout/DesktopHeader';
@@ -65,15 +67,28 @@ export default function App() {
 
   const t = TRANSLATIONS[language as keyof typeof TRANSLATIONS] || TRANSLATIONS['English'];
 
-  // Initialize Auth
+  // Initialize Auth Listener
   useEffect(() => {
-    const user = authService.getCurrentUser();
-    if (user) {
-        setCurrentUser(user);
-        setIsHostRegistered(user.isHostRegistered);
-    }
-    // Simulate initial loading
-    setTimeout(() => setLoading(false), 2000);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    const profile = userDoc.data() as UserProfile;
+                    setCurrentUser(profile);
+                    setIsHostRegistered(profile.isHostRegistered);
+                }
+            } catch (e) {
+                console.error("Error fetching user profile", e);
+            }
+        } else {
+            setCurrentUser(null);
+            setIsHostRegistered(false);
+        }
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleRoleSwitch = (newRole: UserRole) => {
@@ -97,11 +112,17 @@ export default function App() {
           return;
       }
       setLoading(true);
-      setTimeout(() => {
-          setIsHostRegistered(true);
-          handleRoleSwitch('HOST');
+      
+      // Update role in Firestore
+      authService.updateProfile({ isHostRegistered: true }).then((updatedUser) => {
+           setCurrentUser(updatedUser);
+           setIsHostRegistered(true);
+           handleRoleSwitch('HOST');
+           setLoading(false);
+      }).catch(err => {
+          console.error(err);
           setLoading(false);
-      }, 1500); // Fake processing delay
+      });
   };
 
   const handleAddListing = (newCar: Car) => {
@@ -136,7 +157,6 @@ export default function App() {
   const handleProceedCheckout = (data: { startDate: string, endDate: string, startTime: string, endTime: string }) => {
       if (!currentUser) {
           setShowAuthModal(true);
-          // Ideally save the intent to continue after login, but simple for now
           return;
       }
       setBookingData(data);
@@ -184,7 +204,7 @@ export default function App() {
     return <SplashScreen onFinish={() => setLoading(false)} language={language} />;
   }
   
-  // Booking Confirmation View (Highest Priority)
+  // Booking Confirmation View
   if (confirmedBooking && selectedCar && bookingData) {
       return (
           <BookingConfirmationView 
@@ -199,7 +219,7 @@ export default function App() {
       );
   }
 
-  // Checkout View Logic (Takes over full screen)
+  // Checkout View
   if (bookingData && selectedCar) {
       return (
           <CheckoutView 
@@ -224,7 +244,7 @@ export default function App() {
         onLoginSuccess={handleLoginSuccess} 
       />
 
-      {/* Desktop Header - Only visible on md+ */}
+      {/* Desktop Header */}
       <DesktopHeader 
         role={role} 
         activeTab={activeTab} 
@@ -236,7 +256,7 @@ export default function App() {
       {/* Main Scrollable Content Area */}
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32 md:pb-0 bg-gray-50 dark:bg-gray-900">
         
-        {/* Mobile Header - Scrollable with content, hidden on desktop */}
+        {/* Mobile Header */}
         {!selectedCar && <MobileHeader />}
 
         <div className="w-full md:max-w-7xl md:mx-auto md:px-6 h-full">
@@ -304,7 +324,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation Bar - Hidden on desktop */}
+      {/* Mobile Bottom Navigation Bar */}
       {!selectedCar && (
         <MobileBottomNav 
             role={role} 

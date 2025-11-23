@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in - Accounts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border border-gray-200" id="main-container">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800" id="provider-title">Sign in</h1>
+            <p class="text-sm text-gray-500">Choose an account</p>
+        </div>
+
+        <div class="space-y-3">
+            <!-- Account 1 -->
+            <button onclick="selectAccount('user1')" class="w-full flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all text-left group">
+                <div class="h-10 w-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-lg">
+                    J
+                </div>
+                <div>
+                    <p class="font-bold text-gray-800 text-sm">John Doe</p>
+                    <p class="text-xs text-gray-500">john.doe@example.com</p>
+                </div>
+            </button>
+
+            <!-- Account 2 -->
+            <button onclick="selectAccount('user2')" class="w-full flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all text-left group">
+                <img src="https://i.pravatar.cc/150?u=sarah" class="h-10 w-10 rounded-full object-cover" alt="Sarah">
+                <div>
+                    <p class="font-bold text-gray-800 text-sm">Sarah Smith</p>
+                    <p class="text-xs text-gray-500">sarah.smith@example.com</p>
+                </div>
+            </button>
+
+            <!-- Account 3 -->
+            <button onclick="selectAccount('new')" class="w-full flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all text-left group">
+                <div class="h-10 w-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-bold text-gray-800 text-sm">Use another account</p>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Get provider from URL
+        const params = new URLSearchParams(window.location.search);
+        const provider = params.get('provider') || 'google';
+        
+        document.getElementById('provider-title').innerText = `Sign in with ${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
+
+        function selectAccount(type) {
+            let userData = {};
+
+            if (type === 'user1') {
+                userData = {
+                    provider: provider,
+                    email: 'john.doe@example.com',
+                    firstName: 'John',
+                    lastName: 'Doe',
+                    photoURL: '' // Intentionally empty to test fallback
+                };
+            } else if (type === 'user2') {
+                userData = {
+                    provider: provider,
+                    email: 'sarah.smith@example.com',
+                    firstName: 'Sarah',
+                    lastName: 'Smith',
+                    photoURL: 'https://i.pravatar.cc/150?u=sarah'
+                };
+            } else {
+                // Generate random
+                const rand = Math.floor(Math.random() * 1000);
+                userData = {
+                    provider: provider,
+                    email: `user${rand}@example.com`,
+                    firstName: 'New',
+                    lastName: `User${rand}`,
+                    photoURL: ''
+                };
+            }
+
+            // Simulate network delay then send back
+            document.getElementById('main-container').innerHTML = `
+                <div class="flex flex-col items-center justify-center py-10">
+                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
+                    <p class="text-gray-500 text-sm">Signing in...</p>
+                </div>
+            `;
+
+            setTimeout(() => {
+                if (window.opener) {
+                    window.opener.postMessage({ type: 'OAUTH_RESPONSE', payload: userData }, '*');
+                    window.close();
+                } else {
+                    alert("Cannot communicate with main window. Please ensure popups are allowed.");
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

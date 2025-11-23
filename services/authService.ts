@@ -1,99 +1,97 @@
-
+import { auth, db, googleProvider, appleProvider } from '../firebaseConfig';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, updateProfile as updateFirebaseProfile } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { UserProfile } from '../types';
 
-const STORAGE_KEY = 'tubo_user_session';
-
 export const authService = {
-  getCurrentUser: (): UserProfile | null => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
-  },
-
+  // Login with Email/Password
   login: async (email: string, password: string): Promise<UserProfile> => {
-    const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-    });
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const uid = userCredential.user.uid;
 
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Login failed');
+    // Fetch user profile from Firestore
+    const userDoc = await getDoc(doc(db, "users", uid));
+    if (userDoc.exists()) {
+      return userDoc.data() as UserProfile;
+    } else {
+      throw new Error("User profile not found in database.");
     }
-
-    const user = await response.json();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    return user;
   },
 
+  // Register new account
   register: async (firstName: string, lastName: string, email: string, password: string): Promise<UserProfile> => {
-    const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, lastName, email, password })
-    });
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    const displayName = `${firstName} ${lastName}`;
 
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Registration failed');
-    }
+    // Update Auth Profile
+    await updateFirebaseProfile(user, { displayName });
 
-    const user = await response.json();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    return user;
-  },
-
-  socialLogin: async (provider: 'google' | 'apple'): Promise<UserProfile> => {
-    // In a real app, this would involve a popup, redirect, and token exchange.
-    // Since we don't have API keys, we mock the *provider* part but 
-    // persist the result to our *real* backend so the account exists.
-    
-    const mockProfile = {
-        provider,
-        email: `user.${provider}.${Date.now()}@example.com`,
-        firstName: provider === 'google' ? 'Google' : 'Apple',
-        lastName: 'User',
-        photoURL: provider === 'google' 
-            ? 'https://lh3.googleusercontent.com/a/default-user=s96-c' 
-            : 'https://i.pravatar.cc/150?u=apple'
+    const newUserProfile: UserProfile = {
+      uid: user.uid,
+      displayName,
+      email: email,
+      photoURL: "",
+      role: 'GUEST',
+      currency: 'USD',
+      isHostRegistered: false,
+      joinDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     };
 
-    const response = await fetch('/api/auth/social-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mockProfile)
-    });
+    // Save to Firestore
+    await setDoc(doc(db, "users", user.uid), newUserProfile);
 
-    if (!response.ok) {
-         throw new Error('Social login failed');
-    }
-
-    const user = await response.json();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    return user;
+    return newUserProfile;
   },
 
+  // Social Login (Google/Apple)
+  socialLogin: async (providerName: 'google' | 'apple'): Promise<UserProfile> => {
+    const provider = providerName === 'google' ? googleProvider : appleProvider;
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    const userRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      return userDoc.data() as UserProfile;
+    } else {
+      // Create new social user in Firestore if they don't exist
+      const newUserProfile: UserProfile = {
+        uid: user.uid,
+        displayName: user.displayName || "User",
+        email: user.email || "",
+        photoURL: user.photoURL || "",
+        role: 'GUEST',
+        currency: 'USD',
+        isHostRegistered: false,
+        joinDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      };
+      await setDoc(userRef, newUserProfile);
+      return newUserProfile;
+    }
+  },
+
+  // Logout
   logout: async (): Promise<void> => {
-    localStorage.removeItem(STORAGE_KEY);
-    return Promise.resolve();
+    await signOut(auth);
   },
 
+  // Update Profile
   updateProfile: async (updates: Partial<UserProfile>): Promise<UserProfile> => {
-    const current = authService.getCurrentUser();
-    if (!current) throw new Error("No user logged in");
+    const currentUser = auth.currentUser;
+    if (!currentUser) throw new Error("No user logged in");
 
-    const response = await fetch('/api/user/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: current.uid, updates })
-    });
+    const userRef = doc(db, "users", currentUser.uid);
+    await updateDoc(userRef, updates);
 
-    if (!response.ok) {
-        throw new Error("Failed to update profile");
+    // If photoURL is updated, sync it to Firebase Auth object too for consistency
+    if (updates.photoURL) {
+      await updateFirebaseProfile(currentUser, { photoURL: updates.photoURL });
     }
 
-    const updatedUser = await response.json();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
-    return updatedUser;
+    // Return the updated profile
+    const updatedDoc = await getDoc(userRef);
+    return updatedDoc.data() as UserProfile;
   }
 };
