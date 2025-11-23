@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { UserRole, Currency, Car, UserProfile, Booking } from './types';
 import { INITIAL_CARS, TRANSLATIONS } from './constants';
 import { authService } from './services/authService';
-import { auth } from './firebaseConfig';
+import { auth, db } from './firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Layout
 import { DesktopHeader } from './components/layout/DesktopHeader';
@@ -66,15 +68,31 @@ export default function App() {
 
   const t = TRANSLATIONS[language as keyof typeof TRANSLATIONS] || TRANSLATIONS['English'];
 
-  // Initialize Auth Listener
+  // Initialize Real Firebase Auth Listener
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user: any) => {
-        if (user) {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
             try {
-                // In mock implementation, user object already contains profile data
-                const profile = user as UserProfile;
-                setCurrentUser(profile);
-                setIsHostRegistered(profile.isHostRegistered);
+                // Fetch full profile from Firestore
+                const userRef = doc(db, "users", firebaseUser.uid);
+                const userSnap = await getDoc(userRef);
+                
+                if (userSnap.exists()) {
+                    const profile = userSnap.data() as UserProfile;
+                    setCurrentUser(profile);
+                    setIsHostRegistered(profile.isHostRegistered);
+                } else {
+                    // Fallback if data not in DB yet (edge case)
+                    setCurrentUser({
+                        uid: firebaseUser.uid,
+                        displayName: firebaseUser.displayName || 'User',
+                        email: firebaseUser.email || '',
+                        photoURL: firebaseUser.photoURL || '',
+                        role: 'GUEST',
+                        currency: 'USD',
+                        isHostRegistered: false
+                    });
+                }
             } catch (e) {
                 console.error("Error fetching user profile", e);
             }
