@@ -1,10 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserRole, Currency, Car, UserProfile, Booking } from './types';
 import { INITIAL_CARS, TRANSLATIONS } from './constants';
 import { authService } from './services/authService';
-import { auth, db } from './firebaseConfig';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { auth } from './firebaseConfig';
 
 // Layout
 import { DesktopHeader } from './components/layout/DesktopHeader';
@@ -69,15 +68,13 @@ export default function App() {
 
   // Initialize Auth Listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user: any) => {
         if (user) {
             try {
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists()) {
-                    const profile = userDoc.data() as UserProfile;
-                    setCurrentUser(profile);
-                    setIsHostRegistered(profile.isHostRegistered);
-                }
+                // In mock implementation, user object already contains profile data
+                const profile = user as UserProfile;
+                setCurrentUser(profile);
+                setIsHostRegistered(profile.isHostRegistered);
             } catch (e) {
                 console.error("Error fetching user profile", e);
             }
@@ -113,7 +110,7 @@ export default function App() {
       }
       setLoading(true);
       
-      // Update role in Firestore
+      // Update role
       authService.updateProfile({ isHostRegistered: true }).then((updatedUser) => {
            setCurrentUser(updatedUser);
            setIsHostRegistered(true);

@@ -1,35 +1,54 @@
-import { auth, db, googleProvider, appleProvider } from '../firebaseConfig';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, updateProfile as updateFirebaseProfile } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+
+import { auth } from '../firebaseConfig';
 import { UserProfile } from '../types';
 
-export const authService = {
-  // Login with Email/Password
-  login: async (email: string, password: string): Promise<UserProfile> => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const uid = userCredential.user.uid;
+// Simulated delay for async actions
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // Fetch user profile from Firestore
-    const userDoc = await getDoc(doc(db, "users", uid));
-    if (userDoc.exists()) {
-      return userDoc.data() as UserProfile;
+export const authService = {
+  // Login Simulation
+  login: async (email: string, password: string): Promise<UserProfile> => {
+    await delay(800);
+    
+    // Simulate fetching user from "database" (localStorage)
+    const storedKey = `tubo_user_${email}`;
+    const storedUser = localStorage.getItem(storedKey);
+    
+    let userProfile: UserProfile;
+    
+    if (storedUser) {
+        userProfile = JSON.parse(storedUser);
     } else {
-      throw new Error("User profile not found in database.");
+        // Create a mock profile if not found for demo purposes
+        userProfile = {
+            uid: 'user_' + Math.random().toString(36).substr(2, 9),
+            displayName: 'Demo User',
+            email: email,
+            photoURL: '',
+            role: 'GUEST',
+            currency: 'USD',
+            isHostRegistered: false,
+            joinDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        };
+        localStorage.setItem(storedKey, JSON.stringify(userProfile));
     }
+
+    // Persist active session
+    localStorage.setItem('tubo_user', JSON.stringify(userProfile));
+    
+    // Update global auth state
+    auth._setUser(userProfile);
+    
+    return userProfile;
   },
 
-  // Register new account
+  // Register Simulation
   register: async (firstName: string, lastName: string, email: string, password: string): Promise<UserProfile> => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    const displayName = `${firstName} ${lastName}`;
-
-    // Update Auth Profile
-    await updateFirebaseProfile(user, { displayName });
-
+    await delay(800);
+    
     const newUserProfile: UserProfile = {
-      uid: user.uid,
-      displayName,
+      uid: 'user_' + Math.random().toString(36).substr(2, 9),
+      displayName: `${firstName} ${lastName}`,
       email: email,
       photoURL: "",
       role: 'GUEST',
@@ -38,60 +57,57 @@ export const authService = {
       joinDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     };
 
-    // Save to Firestore
-    await setDoc(doc(db, "users", user.uid), newUserProfile);
-
+    // Save to "database" and active session
+    localStorage.setItem(`tubo_user_${email}`, JSON.stringify(newUserProfile));
+    localStorage.setItem('tubo_user', JSON.stringify(newUserProfile));
+    
+    auth._setUser(newUserProfile);
+    
     return newUserProfile;
   },
 
-  // Social Login (Google/Apple)
+  // Social Login Simulation
   socialLogin: async (providerName: 'google' | 'apple'): Promise<UserProfile> => {
-    const provider = providerName === 'google' ? googleProvider : appleProvider;
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-
-    const userRef = doc(db, "users", user.uid);
-    const userDoc = await getDoc(userRef);
-
-    if (userDoc.exists()) {
-      return userDoc.data() as UserProfile;
-    } else {
-      // Create new social user in Firestore if they don't exist
-      const newUserProfile: UserProfile = {
-        uid: user.uid,
-        displayName: user.displayName || "User",
-        email: user.email || "",
-        photoURL: user.photoURL || "",
+    await delay(800);
+    
+    const socialUser: UserProfile = {
+        uid: 'social_' + Math.random().toString(36).substr(2, 9),
+        displayName: providerName === 'google' ? 'Google User' : 'Apple User',
+        email: `user@${providerName}.com`,
+        photoURL: "https://i.pravatar.cc/150?u=social",
         role: 'GUEST',
         currency: 'USD',
         isHostRegistered: false,
         joinDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      };
-      await setDoc(userRef, newUserProfile);
-      return newUserProfile;
-    }
+    };
+
+    localStorage.setItem('tubo_user', JSON.stringify(socialUser));
+    auth._setUser(socialUser);
+    return socialUser;
   },
 
   // Logout
   logout: async (): Promise<void> => {
-    await signOut(auth);
+    await delay(300);
+    localStorage.removeItem('tubo_user');
+    auth._setUser(null);
   },
 
   // Update Profile
   updateProfile: async (updates: Partial<UserProfile>): Promise<UserProfile> => {
+    await delay(500);
     const currentUser = auth.currentUser;
     if (!currentUser) throw new Error("No user logged in");
 
-    const userRef = doc(db, "users", currentUser.uid);
-    await updateDoc(userRef, updates);
-
-    // If photoURL is updated, sync it to Firebase Auth object too for consistency
-    if (updates.photoURL) {
-      await updateFirebaseProfile(currentUser, { photoURL: updates.photoURL });
+    const updatedProfile = { ...currentUser, ...updates };
+    
+    // Update active session and "database"
+    localStorage.setItem('tubo_user', JSON.stringify(updatedProfile));
+    if (currentUser.email) {
+        localStorage.setItem(`tubo_user_${currentUser.email}`, JSON.stringify(updatedProfile));
     }
 
-    // Return the updated profile
-    const updatedDoc = await getDoc(userRef);
-    return updatedDoc.data() as UserProfile;
+    auth._setUser(updatedProfile);
+    return updatedProfile;
   }
 };

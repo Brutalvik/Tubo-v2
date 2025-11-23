@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, Loader2, ArrowRight } from 'lucide-react';
+import { X, Mail, Lock, User, Loader2, ArrowRight, AlertTriangle } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { UserProfile } from '../../types';
+import { firebaseConfig } from '../../firebaseConfig';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -23,9 +24,20 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }: AuthModalProps) =
 
     if (!isOpen) return null;
 
+    const checkConfig = () => {
+        if (firebaseConfig.apiKey.includes("DUMMYKEY")) {
+            setError("Configuration Missing: Please update src/firebaseConfig.ts with your actual Firebase project keys.");
+            return false;
+        }
+        return true;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        
+        if (!checkConfig()) return;
+
         setLoading(true);
 
         try {
@@ -41,7 +53,11 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }: AuthModalProps) =
             onLoginSuccess(user);
             onClose();
         } catch (err: any) {
-            setError(err.message || 'Authentication failed');
+            console.error("Auth Error:", err);
+            let msg = err.message || 'Authentication failed';
+            if (msg.includes("auth/invalid-credential")) msg = "Invalid email or password.";
+            if (msg.includes("auth/email-already-in-use")) msg = "Email is already registered.";
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -49,13 +65,21 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }: AuthModalProps) =
 
     const handleSocialLogin = async (provider: 'google' | 'apple') => {
         setError('');
+        
+        if (!checkConfig()) return;
+
         setLoading(true);
         try {
             const user = await authService.socialLogin(provider);
             onLoginSuccess(user);
             onClose();
-        } catch (err) {
-            setError('Social login failed');
+        } catch (err: any) {
+            console.error("Social Auth Error:", err);
+            let msg = "Social login failed.";
+            if (err.code === 'auth/popup-closed-by-user') msg = "Login cancelled.";
+            if (err.code === 'auth/operation-not-allowed') msg = `${provider} login is not enabled in Firebase Console.`;
+            if (err.code === 'auth/unauthorized-domain') msg = "Domain not authorized in Firebase Console.";
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -134,8 +158,9 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }: AuthModalProps) =
                         </div>
 
                         {error && (
-                            <div className="text-red-500 text-xs font-bold text-center bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
-                                {error}
+                            <div className="flex items-start gap-2 text-red-500 text-xs font-bold bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-left">
+                                <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                                <div>{error}</div>
                             </div>
                         )}
 

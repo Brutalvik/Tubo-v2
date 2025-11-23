@@ -1,27 +1,51 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
 
-// TODO: REPLACE WITH YOUR ACTUAL FIREBASE CONFIG KEYS
-// 1. Go to https://console.firebase.google.com/
-// 2. Create a new project
-// 3. Add a Web App
-// 4. Copy the config object below
-// 5. Enable Authentication (Email/Password, Google, Apple) in the console
-// 6. Enable Firestore Database in the console
+// Mock Firebase Configuration for Demo Environment
+// This replaces the actual Firebase SDK imports to resolve build errors in environments 
+// where 'firebase' package is missing or configuration is invalid.
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDUMMYKEY_REPLACE_THIS_WITH_YOURS",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "1234567890",
-  appId: "1:1234567890:web:abcdef123456"
+export const firebaseConfig = {
+  apiKey: "demo-api-key",
+  authDomain: "demo.firebaseapp.com",
+  projectId: "demo-project",
+  storageBucket: "demo.appspot.com",
+  messagingSenderId: "00000000000",
+  appId: "1:00000000000:web:0000000000000"
 };
 
-const app = initializeApp(firebaseConfig);
+// Mock Auth Object
+type AuthListener = (user: any) => void;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const googleProvider = new GoogleAuthProvider();
-export const appleProvider = new OAuthProvider('apple.com');
+export const auth = {
+  currentUser: null as any,
+  listeners: [] as AuthListener[],
+  
+  onAuthStateChanged(callback: AuthListener) {
+    this.listeners.push(callback);
+    // Trigger initial state
+    setTimeout(() => callback(this.currentUser), 0);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== callback);
+    };
+  },
+
+  // Internal method to simulate auth state change
+  _setUser(user: any) {
+    this.currentUser = user;
+    this.listeners.forEach(cb => cb(user));
+  }
+};
+
+// Initialize mock user from local storage if available
+try {
+  const stored = localStorage.getItem('tubo_user');
+  if (stored) {
+    auth.currentUser = JSON.parse(stored);
+  }
+} catch (e) {
+  console.error('Failed to restore auth state', e);
+}
+
+// Mock DB and Providers
+export const db = {};
+export const googleProvider = {};
+export const appleProvider = {};
