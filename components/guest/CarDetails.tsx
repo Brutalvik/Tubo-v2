@@ -1,16 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     ArrowLeft, Share2, Heart, Star, Sparkles, 
     ShieldCheck, Settings2,
     Wind, Bluetooth, Users, Zap, Fuel, Music,
     Cigarette, Sparkles as SparklesIcon, Droplets, AlertTriangle,
-    X, CheckCircle, Info, ThumbsUp, Calendar
+    X, CheckCircle, Info, ThumbsUp, Calendar as CalendarIcon
 } from 'lucide-react';
 import { Car, Currency } from '../../types';
 import { EXCHANGE_RATES, TRANSLATIONS } from '../../constants';
 import { getCarHighlights } from '../../services/geminiService';
 import { CarGallery } from './CarGallery';
+import { BookingCalendar } from './BookingCalendar';
 
 const MOCK_REVIEWS = [
     {
@@ -88,6 +89,10 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
     const [endDate, setEndDate] = useState("2025-11-27");
     const [startTime, setStartTime] = useState("10:00");
     const [endTime, setEndTime] = useState("10:00");
+    
+    // Desktop Calendar Popover State
+    const [showDesktopCalendar, setShowDesktopCalendar] = useState(false);
+    const calendarRef = useRef<HTMLDivElement>(null);
 
     // Mock Unavailable Dates for testing (e.g. for the first car in the list or specific ID)
     // In a real app, this comes from the backend
@@ -156,6 +161,17 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
         return () => container?.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // Close desktop calendar when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+                setShowDesktopCalendar(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [calendarRef]);
+
     const handleShare = async () => {
         if (navigator.share) {
             try {
@@ -192,6 +208,11 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
             element.scrollIntoView({ behavior: 'smooth' });
             setActiveTab(id);
         }
+    };
+
+    const handleRangeChange = (start: string, end: string) => {
+        setStartDate(start);
+        setEndDate(end);
     };
 
     const FeatureItem = ({ name }: { name: string }) => {
@@ -503,7 +524,7 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
 
                 {/* Right Sticky Sidebar (Desktop) */}
                 <div className="hidden lg:block lg:col-span-1">
-                    <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-6">
+                    <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-6 relative" ref={calendarRef}>
                          {bookingStatus === 'success' ? (
                             <div className="flex flex-col items-center justify-center py-10 text-center animate-in fade-in zoom-in">
                                 <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
@@ -522,17 +543,40 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
 
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Trip start</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="relative">
-                                                <input 
-                                                    type="date" 
-                                                    value={startDate}
-                                                    onChange={(e) => setStartDate(e.target.value)}
-                                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-gray-700 outline-none focus:border-tubo-orange"
-                                                />
+                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Trip dates</label>
+                                        <div 
+                                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-gray-700 flex items-center justify-between cursor-pointer hover:border-tubo-orange transition-colors"
+                                            onClick={() => setShowDesktopCalendar(!showDesktopCalendar)}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <CalendarIcon size={16} className="text-tubo-orange" />
+                                                <span>{startDate && endDate ? `${startDate} - ${endDate}` : "Select dates"}</span>
                                             </div>
+                                        </div>
+                                        
+                                        {/* Desktop Calendar Popover */}
+                                        {showDesktopCalendar && (
+                                            <div className="absolute top-32 left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-4 animate-in zoom-in-95">
+                                                <BookingCalendar 
+                                                    unavailableDates={unavailableDates}
+                                                    startDate={startDate}
+                                                    endDate={endDate}
+                                                    onRangeChange={handleRangeChange}
+                                                />
+                                                <div className="flex justify-end mt-2">
+                                                    <button 
+                                                        onClick={() => setShowDesktopCalendar(false)}
+                                                        className="text-xs font-bold text-tubo-blue hover:underline"
+                                                    >
+                                                        Done
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="grid grid-cols-2 gap-2 mt-2">
                                             <div className="relative">
+                                                <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">Pickup Time</label>
                                                 <input 
                                                     type="time" 
                                                     value={startTime}
@@ -540,21 +584,8 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-gray-700 outline-none focus:border-tubo-orange"
                                                 />
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Trip end</label>
-                                        <div className="grid grid-cols-2 gap-2">
                                             <div className="relative">
-                                                <input 
-                                                    type="date" 
-                                                    value={endDate}
-                                                    onChange={(e) => setEndDate(e.target.value)}
-                                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-gray-700 outline-none focus:border-tubo-orange"
-                                                />
-                                            </div>
-                                            <div className="relative">
+                                                <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">Dropoff Time</label>
                                                 <input 
                                                     type="time" 
                                                     value={endTime}
@@ -564,7 +595,7 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     {!isRangeAvailable && (
                                         <div className="text-xs text-red-500 font-bold bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-900/30">
                                             Dates unavailable. Please select different dates.
@@ -644,7 +675,7 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                             </span>
                         </div>
                         <div className="flex items-center text-[10px] text-gray-500 font-medium gap-1">
-                             <Calendar size={10} className="text-tubo-orange" />
+                             <CalendarIcon size={10} className="text-tubo-orange" />
                              <span>{getDateRangeString()}</span>
                         </div>
                     </div>
@@ -664,7 +695,7 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowMobileBooking(false)}></div>
                     
                     {/* Sheet */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl p-6 animate-in slide-in-from-bottom duration-300">
+                    <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl p-6 animate-in slide-in-from-bottom duration-300 max-h-[90vh] overflow-y-auto">
                          <div className="flex items-center justify-between mb-6">
                             <h3 className="text-xl font-black text-gray-900 dark:text-white">Select dates</h3>
                             <button onClick={() => setShowMobileBooking(false)} className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full">
@@ -681,14 +712,17 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                          ) : (
                             <div className="space-y-5">
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Trip start</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <input 
-                                            type="date" 
-                                            value={startDate}
-                                            onChange={(e) => setStartDate(e.target.value)}
-                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
-                                        />
+                                    <BookingCalendar 
+                                        unavailableDates={unavailableDates}
+                                        startDate={startDate}
+                                        endDate={endDate}
+                                        onRangeChange={handleRangeChange}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Pickup</label>
                                         <input 
                                             type="time" 
                                             value={startTime}
@@ -696,17 +730,8 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                                             className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
                                         />
                                     </div>
-                                </div>
-
-                                <div>
-                                    <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Trip end</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <input 
-                                            type="date" 
-                                            value={endDate}
-                                            onChange={(e) => setEndDate(e.target.value)}
-                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
-                                        />
+                                    <div>
+                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Dropoff</label>
                                         <input 
                                             type="time" 
                                             value={endTime}
