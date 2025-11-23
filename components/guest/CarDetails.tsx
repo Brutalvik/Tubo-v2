@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
     ArrowLeft, Share2, Heart, Star, Sparkles, 
     ShieldCheck, Settings2,
     Wind, Bluetooth, Users, Zap, Fuel, Music,
     Cigarette, Sparkles as SparklesIcon, Droplets, AlertTriangle,
-    X, CheckCircle, Info, ThumbsUp
+    X, CheckCircle, Info, ThumbsUp, Calendar
 } from 'lucide-react';
 import { Car, Currency } from '../../types';
 import { EXCHANGE_RATES, TRANSLATIONS } from '../../constants';
@@ -88,9 +89,41 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
     const [startTime, setStartTime] = useState("10:00");
     const [endTime, setEndTime] = useState("10:00");
 
+    // Mock Unavailable Dates for testing (e.g. for the first car in the list or specific ID)
+    // In a real app, this comes from the backend
+    const unavailableDates = (car.id === 'bali_1' || car.id === 'jkt_1') 
+        ? ['2025-11-28', '2025-11-29'] 
+        : [];
+
+    // Check availability logic
+    const checkRangeAvailability = (start: string, end: string) => {
+        if (!start || !end) return true;
+        const s = new Date(start);
+        const e = new Date(end);
+        
+        // Iterate through days
+        for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+            const dateString = d.toISOString().split('T')[0];
+            if (unavailableDates.includes(dateString)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    const isRangeAvailable = checkRangeAvailability(startDate, endDate);
+
     const formatPrice = (price: number) => {
         if (currency === 'IDR') return `Rp ${price.toLocaleString('en-US')}`;
         return `${currency} ${price.toLocaleString('en-US')}`;
+    };
+
+    // Format date range for display (e.g., "Nov 24, 10:00 - Nov 27, 10:00")
+    const getDateRangeString = () => {
+        const s = new Date(startDate);
+        const e = new Date(endDate);
+        const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+        return `${s.toLocaleDateString('en-US', options)}, ${startTime} - ${e.toLocaleDateString('en-US', options)}, ${endTime}`;
     };
 
     useEffect(() => {
@@ -140,7 +173,8 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
         }
     };
 
-    const handleBooking = () => {
+    const handleProceed = () => {
+        if (!isRangeAvailable) return;
         setBookingStatus('processing');
         setTimeout(() => {
             setBookingStatus('success');
@@ -216,7 +250,7 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-3 gap-12 relative">
                 
                 {/* Left Content Column */}
-                <div className="lg:col-span-2 space-y-10 pb-24">
+                <div className="lg:col-span-2 space-y-10 pb-32">
                     
                     {/* Header Info */}
                     <section id="overview" className="scroll-mt-24">
@@ -530,6 +564,12 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    {!isRangeAvailable && (
+                                        <div className="text-xs text-red-500 font-bold bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-900/30">
+                                            Dates unavailable. Please select different dates.
+                                        </div>
+                                    )}
 
                                     <div>
                                         <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Pickup & return location</label>
@@ -540,11 +580,11 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                                     </div>
 
                                     <button 
-                                        onClick={handleBooking}
-                                        disabled={bookingStatus === 'processing'}
-                                        className="w-full bg-tubo-blue hover:bg-black text-white font-bold py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center"
+                                        onClick={handleProceed}
+                                        disabled={bookingStatus === 'processing' || !isRangeAvailable}
+                                        className={`w-full font-bold py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center ${!isRangeAvailable ? 'bg-gray-300 cursor-not-allowed text-gray-500' : 'bg-tubo-blue hover:bg-black text-white'}`}
                                     >
-                                        {bookingStatus === 'processing' ? 'Processing...' : 'Continue'}
+                                        {bookingStatus === 'processing' ? 'Processing...' : 'Proceed'}
                                     </button>
                                     
                                     <div className="pt-4 space-y-3">
@@ -596,14 +636,17 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
             {/* Mobile Sticky Bottom Bar */}
             <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 p-4 pb-safe-bottom shadow-[0_-5px_20px_rgba(0,0,0,0.1)] z-50">
                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                        <div className="flex items-baseline gap-1.5">
+                    <div className="flex flex-col">
+                        <div className="flex items-baseline gap-2">
                             <span className="text-gray-400 line-through text-xs font-bold">{formatPrice(originalPrice)}</span>
                             <span className="text-lg font-black text-gray-900 dark:text-white">
                                 {formatPrice(convertedPrice)}
                             </span>
                         </div>
-                         <span className="text-[10px] font-bold text-gray-500 block leading-none">{formatPrice(convertedPrice)} total</span>
+                        <div className="flex items-center text-[10px] text-gray-500 font-medium gap-1">
+                             <Calendar size={10} className="text-tubo-orange" />
+                             <span>{getDateRangeString()}</span>
+                        </div>
                     </div>
                     <button 
                         onClick={() => setShowMobileBooking(true)}
@@ -644,13 +687,13 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                                             type="date" 
                                             value={startDate}
                                             onChange={(e) => setStartDate(e.target.value)}
-                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold"
+                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
                                         />
                                         <input 
                                             type="time" 
                                             value={startTime}
                                             onChange={(e) => setStartTime(e.target.value)}
-                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold"
+                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
                                         />
                                     </div>
                                 </div>
@@ -662,16 +705,23 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                                             type="date" 
                                             value={endDate}
                                             onChange={(e) => setEndDate(e.target.value)}
-                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold"
+                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
                                         />
                                         <input 
                                             type="time" 
                                             value={endTime}
                                             onChange={(e) => setEndTime(e.target.value)}
-                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold"
+                                            className="w-full bg-gray-50 dark:bg-gray-800 border-transparent rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-tubo-orange/20"
                                         />
                                     </div>
                                 </div>
+
+                                {!isRangeAvailable && (
+                                    <div className="text-sm text-red-500 font-bold bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-900/30 flex items-center gap-2">
+                                        <AlertTriangle size={16} />
+                                        Dates unavailable.
+                                    </div>
+                                )}
 
                                 <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl flex justify-between items-center">
                                      <span className="font-bold text-gray-900 dark:text-white">Total price</span>
@@ -681,11 +731,11 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                                 </div>
 
                                 <button 
-                                    onClick={handleBooking}
-                                    disabled={bookingStatus === 'processing'}
-                                    className="w-full bg-tubo-blue hover:bg-black text-white font-bold py-4 rounded-xl text-lg shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all"
+                                    onClick={handleProceed}
+                                    disabled={bookingStatus === 'processing' || !isRangeAvailable}
+                                    className={`w-full font-bold py-4 rounded-xl text-lg shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all ${!isRangeAvailable ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none' : 'bg-tubo-blue hover:bg-black text-white'}`}
                                 >
-                                    {bookingStatus === 'processing' ? 'Processing...' : 'Confirm Booking'}
+                                    {bookingStatus === 'processing' ? 'Processing...' : 'Proceed'}
                                 </button>
                             </div>
                          )}

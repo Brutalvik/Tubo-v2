@@ -12,7 +12,7 @@ interface MobileBottomNavProps {
 
 export const MobileBottomNav = ({ role, activeTab, setActiveTab, t }: MobileBottomNavProps) => (
     <nav className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 fixed bottom-0 w-full pb-safe-bottom z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
-        <div className="flex justify-between items-center px-6 pt-3 pb-1 max-w-md mx-auto">
+        <div className="flex justify-between items-center px-6 py-2 max-w-md mx-auto">
         {role === 'GUEST' ? (
             <>
             <NavTab icon={<Home />} label={t.home} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
