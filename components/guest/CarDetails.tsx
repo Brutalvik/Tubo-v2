@@ -1,15 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
-    ArrowLeft, Share2, Heart, Star, MapPin, Sparkles, 
-    ShieldCheck, User, MessageSquare, Flag, Calendar, 
-    Clock, ChevronDown, Info, ThumbsUp, Settings2,
+    ArrowLeft, Share2, Heart, Star, Sparkles, 
+    ShieldCheck, Settings2,
     Wind, Bluetooth, Users, Zap, Fuel, Music,
     Cigarette, Sparkles as SparklesIcon, Droplets, AlertTriangle,
-    X, CheckCircle, Copy
+    X, CheckCircle, Info, ThumbsUp
 } from 'lucide-react';
 import { Car, Currency } from '../../types';
 import { EXCHANGE_RATES, TRANSLATIONS } from '../../constants';
 import { getCarHighlights } from '../../services/geminiService';
+import { CarGallery } from './CarGallery';
 
 const MOCK_REVIEWS = [
     {
@@ -203,32 +204,8 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                 </div>
             </div>
 
-            {/* Hero Gallery */}
-            <div className="max-w-7xl mx-auto md:px-6 lg:px-8 md:pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:rounded-xl overflow-hidden md:h-[400px]">
-                    {/* Main Image */}
-                    <div className="md:col-span-2 h-64 md:h-full relative group cursor-pointer" onClick={() => alert("Gallery view would open here")}>
-                        <img src={car.imageUrl} alt={car.model} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                        {car.isSponsored && (
-                            <div className="absolute top-4 left-4 bg-white text-gray-900 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider shadow-sm">
-                                Sponsored
-                            </div>
-                        )}
-                    </div>
-                    {/* Side Images */}
-                    <div className="hidden md:flex flex-col gap-2">
-                        <div className="h-full relative bg-gray-100 overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=600&q=80" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" alt="Interior" />
-                        </div>
-                        <div className="h-full relative bg-gray-100 overflow-hidden group cursor-pointer" onClick={() => alert("Gallery view would open here")}>
-                            <img src="https://images.unsplash.com/photo-1493238792015-164e8502561d?auto=format&fit=crop&w=600&q=80" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" alt="Detail" />
-                            <button className="absolute bottom-4 right-4 bg-white text-gray-900 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md flex items-center gap-2 hover:bg-gray-50 transition-colors">
-                                <MessageSquare size={14} /> View 14 photos
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {/* Modular Car Gallery */}
+            <CarGallery car={car} />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-3 gap-12 relative">
                 
@@ -454,41 +431,27 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                         </div>
                     </section>
 
-                     {/* Location */}
+                     {/* Location - Updated to plain map without cards */}
                      <section id="location" className="border-t border-gray-100 dark:border-gray-800 pt-8 scroll-mt-24">
                         <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4">Location</h3>
                         <div 
                             className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 h-64 relative bg-gray-100 cursor-pointer group isolate"
                             onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(car.location)}`, '_blank')}
                         >
-                            {/* Map Iframe - z-0 */}
+                            {/* Map Iframe - plain view */}
                             <iframe 
                                 width="100%" 
                                 height="100%" 
                                 frameBorder="0" 
                                 style={{border:0}}
                                 src={`https://maps.google.com/maps?q=${encodeURIComponent(car.location)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
-                                className="absolute inset-0 w-full h-full pointer-events-none grayscale-[0.3] opacity-90 group-hover:opacity-100 transition-all"
+                                className="absolute inset-0 w-full h-full pointer-events-none opacity-90 hover:opacity-100 transition-opacity"
                                 title="Car Location"
                                 loading="lazy"
                             />
-
-                            {/* Overlay Content - z-10 */}
-                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                                <div className="relative flex flex-col items-center transition-transform duration-300 group-hover:-translate-y-2">
-                                    <div className="relative">
-                                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-1.5 bg-black/20 blur-[2px] rounded-full"></div>
-                                        <MapPin className="h-10 w-10 text-tubo-orange fill-white/20 relative z-10" strokeWidth={2.5} />
-                                    </div>
-                                    <div className="mt-2 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-full text-xs font-bold shadow-xl border border-gray-100 dark:border-gray-700 flex items-center gap-1.5">
-                                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                        {car.location}
-                                    </div>
-                                </div>
-                            </div>
                             
-                            {/* Hover overlay effect */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                            {/* No overlay cards, just hover effect */}
+                            <div className="absolute inset-0 bg-black/0 hover:bg-black/5 transition-colors pointer-events-none"></div>
                         </div>
                         <div className="mt-4 text-sm text-gray-500 flex items-center gap-2">
                             <Info size={14} />
