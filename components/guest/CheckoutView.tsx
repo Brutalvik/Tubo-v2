@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
     ArrowLeft, ShieldCheck, CreditCard, Info, 
     CheckCircle, ChevronDown, Plus, Car as CarIcon,
-    Calendar as CalendarIcon, MapPin, Loader2, Lock, AlertCircle
+    Calendar as CalendarIcon, MapPin, Loader2, Lock, AlertCircle, Check
 } from 'lucide-react';
 import { Car, Currency } from '../../types';
 import { EXCHANGE_RATES } from '../../constants';
@@ -18,6 +18,12 @@ interface CheckoutViewProps {
     onBook: (finalPrice: number) => void;
 }
 
+const ADD_ONS = [
+    { id: 'tire_glass', title: 'Tire & Glass Protection', desc: 'Covers flat tires and windshield chips', priceUsd: 12 },
+    { id: 'personal_accident', title: 'Personal Accident Insurance', desc: 'Medical coverage for driver and passengers', priceUsd: 8 },
+    { id: 'roadside', title: 'Premium Roadside Assist', desc: 'Towing, jump starts, and lockout service', priceUsd: 10 },
+];
+
 export const CheckoutView = ({ 
     car, startDate, endDate, startTime, endTime, currency, onBack, onBook 
 }: CheckoutViewProps) => {
@@ -25,6 +31,7 @@ export const CheckoutView = ({
     const [rateOption, setRateOption] = useState<'non-refundable' | 'refundable'>('non-refundable');
     const [paymentMethod, setPaymentMethod] = useState<'card' | 'gpay'>('card');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
 
     // Form Data State
     const [formData, setFormData] = useState({
@@ -56,8 +63,33 @@ export const CheckoutView = ({
     const taxes = Math.round(subtotal * 0.11); // Mock 11% tax
     const protectionFee = rateOption === 'refundable' ? Math.round(subtotal * 0.08) : 0;
     
-    const total = subtotal + taxes + protectionFee;
-    const discount = rateOption === 'non-refundable' ? Math.round(total * 0.05) : 0;
+    // Calculate Add-ons
+    const addOnsTotal = selectedAddOns.reduce((acc, id) => {
+        const addon = ADD_ONS.find(a => a.id === id);
+        return acc + (addon ? Math.round(addon.priceUsd * rate * 15000 / 15000) : 0); // Normalized calc, assuming priceUsd is base. 
+        // Note: The previous logic assumed direct rate conversion. 
+        // Let's ensure priceUsd converts correctly to the target currency.
+        // Assuming Exchange Rates are based on IDR = 1.
+        // USD = 0.000064 IDR => 1 USD = ~15625 IDR.
+        // So priceUsd / USD_RATE gives IDR. Then IDR * Current_Currency_Rate gives display price.
+    }, 0) * diffDays; 
+
+    // Better calc for add-ons to match currency:
+    // Convert USD price to IDR first (Base), then to target currency.
+    const usdToIdr = 15600; // Approx fixed for simplicity or derived from 1/EXCHANGE_RATES.USD
+    
+    const calculateAddOnPrice = (priceUsd: number) => {
+         const priceIdr = priceUsd * usdToIdr;
+         return Math.round(priceIdr * rate);
+    };
+
+    const totalAddOnsCost = selectedAddOns.reduce((acc, id) => {
+        const addon = ADD_ONS.find(a => a.id === id);
+        return acc + (addon ? calculateAddOnPrice(addon.priceUsd) * diffDays : 0);
+    }, 0);
+    
+    const total = subtotal + taxes + protectionFee + totalAddOnsCost;
+    const discount = rateOption === 'non-refundable' ? Math.round((subtotal + taxes) * 0.05) : 0; // Discount only on base + tax
     const finalTotal = total - discount;
 
     const formatPrice = (price: number) => {
@@ -82,6 +114,12 @@ export const CheckoutView = ({
                 return newErrors;
             });
         }
+    };
+
+    const toggleAddOn = (id: string) => {
+        setSelectedAddOns(prev => 
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
     };
 
     const validate = () => {
@@ -315,6 +353,39 @@ export const CheckoutView = ({
                             </div>
                             <button className="text-tubo-blue dark:text-blue-400 font-bold text-sm">Add</button>
                         </div>
+                    </section>
+
+                    <hr className="border-gray-100 dark:border-gray-800" />
+
+                    {/* NEW Insurance Add-ons Section */}
+                    <section>
+                         <h2 className="text-xl font-black text-gray-900 dark:text-white mb-4">Insurance Add-ons</h2>
+                         <div className="grid gap-3">
+                             {ADD_ONS.map((addon) => {
+                                 const isSelected = selectedAddOns.includes(addon.id);
+                                 return (
+                                     <div 
+                                        key={addon.id}
+                                        onClick={() => toggleAddOn(addon.id)}
+                                        className={`border rounded-xl p-4 flex justify-between items-center cursor-pointer transition-all ${isSelected ? 'border-tubo-blue bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-700 hover:border-gray-400'}`}
+                                     >
+                                         <div className="flex items-center gap-4">
+                                             <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-tubo-blue bg-tubo-blue text-white' : 'border-gray-400'}`}>
+                                                 {isSelected && <Check size={14} strokeWidth={3} />}
+                                             </div>
+                                             <div>
+                                                 <h3 className="font-bold text-sm text-gray-900 dark:text-white">{addon.title}</h3>
+                                                 <p className="text-xs text-gray-500 mt-0.5">{addon.desc}</p>
+                                             </div>
+                                         </div>
+                                         <div className="text-right">
+                                             <span className="font-bold text-sm text-gray-900 dark:text-white">{formatPrice(calculateAddOnPrice(addon.priceUsd))}</span>
+                                             <span className="text-[10px] text-gray-400 block">/day</span>
+                                         </div>
+                                     </div>
+                                 );
+                             })}
+                         </div>
                     </section>
 
                     <hr className="border-gray-100 dark:border-gray-800" />
@@ -559,6 +630,12 @@ export const CheckoutView = ({
                                 <div className="flex justify-between">
                                     <span className="underline decoration-gray-300 decoration-dashed underline-offset-4">Protection fee</span>
                                     <span>{formatPrice(protectionFee)}</span>
+                                </div>
+                            )}
+                            {totalAddOnsCost > 0 && (
+                                <div className="flex justify-between">
+                                    <span className="underline decoration-gray-300 decoration-dashed underline-offset-4">Insurance & extras</span>
+                                    <span>{formatPrice(totalAddOnsCost)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between text-green-600 font-bold">
