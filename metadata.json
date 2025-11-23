@@ -1,0 +1,7 @@
+{
+  "name": "Tubo Car Rental",
+  "description": "A comprehensive peer-to-peer car rental application connecting Hosts and Guests with robust security, real-time features, and AI-powered tools.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
