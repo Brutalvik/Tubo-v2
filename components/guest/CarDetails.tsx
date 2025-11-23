@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
     ArrowLeft, Share2, Heart, Star, Sparkles, 
@@ -67,6 +66,8 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
     const t = TRANSLATIONS[language as keyof typeof TRANSLATIONS] || TRANSLATIONS['English'];
     const rate = EXCHANGE_RATES[currency] || 1;
     const convertedPrice = Math.round(car.pricePerDayIdr * rate);
+    // Calculate a fake "original" price to show the deal (e.g. 15% higher)
+    const originalPrice = Math.round(convertedPrice * 1.15);
     
     // State
     const [highlights, setHighlights] = useState<string[]>([]);
@@ -86,6 +87,11 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
     const [endDate, setEndDate] = useState("2025-11-27");
     const [startTime, setStartTime] = useState("10:00");
     const [endTime, setEndTime] = useState("10:00");
+
+    const formatPrice = (price: number) => {
+        if (currency === 'IDR') return `Rp ${price.toLocaleString('en-US')}`;
+        return `${currency} ${price.toLocaleString('en-US')}`;
+    };
 
     useEffect(() => {
         const fetchHighlights = async () => {
@@ -252,7 +258,7 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                             <div className="flex items-center gap-4">
                                 <div className="relative">
                                     <img src={`https://i.pravatar.cc/150?u=${car.hostId}`} alt="Host" className="h-14 w-14 rounded-full object-cover" />
-                                    <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-900 p-1 rounded-full">
+                                    <div className="absolute -bottom-1 -right-1 bg-white dark:bg-900 p-1 rounded-full">
                                         <ShieldCheck className="h-4 w-4 text-purple-600 fill-purple-100" />
                                     </div>
                                 </div>
@@ -473,12 +479,9 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                          ) : (
                              <>
                                 <div className="flex items-baseline gap-2 mb-6">
-                                    <span className="text-gray-400 line-through text-lg font-medium">$384</span>
+                                    <span className="text-gray-400 line-through text-lg font-medium">{formatPrice(originalPrice)}</span>
                                     <span className="text-2xl font-black text-gray-900 dark:text-white">
-                                        {currency === 'IDR' 
-                                        ? `${(convertedPrice/1000000).toFixed(1)}jt` 
-                                        : `${currency} ${convertedPrice.toLocaleString()}`
-                                        }
+                                        {formatPrice(convertedPrice)}
                                     </span>
                                     <span className="text-sm text-gray-500">total</span>
                                 </div>
@@ -595,15 +598,12 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                  <div className="flex items-center justify-between gap-4">
                     <div>
                         <div className="flex items-baseline gap-1.5">
-                            <span className="text-gray-400 line-through text-xs font-bold">$384</span>
+                            <span className="text-gray-400 line-through text-xs font-bold">{formatPrice(originalPrice)}</span>
                             <span className="text-lg font-black text-gray-900 dark:text-white">
-                                {currency === 'IDR' 
-                                ? `${(convertedPrice/1000000).toFixed(1)}jt` 
-                                : `${currency} ${convertedPrice.toLocaleString()}`
-                                }
+                                {formatPrice(convertedPrice)}
                             </span>
                         </div>
-                         <span className="text-[10px] font-bold text-gray-500 block leading-none">$378 total</span>
+                         <span className="text-[10px] font-bold text-gray-500 block leading-none">{formatPrice(convertedPrice)} total</span>
                     </div>
                     <button 
                         onClick={() => setShowMobileBooking(true)}
@@ -676,10 +676,7 @@ export const CarDetails = ({ car, currency, onClose, language }: { car: Car, cur
                                 <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl flex justify-between items-center">
                                      <span className="font-bold text-gray-900 dark:text-white">Total price</span>
                                      <span className="font-black text-xl text-tubo-blue dark:text-white">
-                                        {currency === 'IDR' 
-                                            ? `${(convertedPrice/1000000).toFixed(1)}jt` 
-                                            : `${currency} ${convertedPrice.toLocaleString()}`
-                                        }
+                                        {formatPrice(convertedPrice)}
                                      </span>
                                 </div>
 

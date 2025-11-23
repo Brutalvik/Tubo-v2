@@ -74,8 +74,8 @@ export const PopularCarCard = ({ car, currency, t, onSelect }: { car: Car, curre
                         <p className="text-[10px] text-gray-400 leading-none mb-0.5">{t.perDay}</p>
                         <p className="text-lg font-black text-tubo-orange leading-none">
                             {currency === 'IDR' 
-                              ? `${(convertedPrice/1000000).toFixed(1)}jt` 
-                              : `${currency} ${convertedPrice.toLocaleString()}`
+                              ? `Rp ${convertedPrice.toLocaleString('en-US')}` 
+                              : `${currency} ${convertedPrice.toLocaleString('en-US')}`
                             }
                         </p>
                      </div>
