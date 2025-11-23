@@ -4,13 +4,14 @@ import {
     ShieldCheck, Settings2,
     Wind, Bluetooth, Users, Zap, Fuel, Music,
     Cigarette, Sparkles as SparklesIcon, Droplets, AlertTriangle,
-    X, CheckCircle, Info, ThumbsUp, Calendar as CalendarIcon
+    X, CheckCircle, Info, ThumbsUp, Calendar as CalendarIcon, MapPin
 } from 'lucide-react';
 import { Car, Currency } from '../../types';
 import { EXCHANGE_RATES, TRANSLATIONS } from '../../constants';
-import { getCarHighlights } from '../../services/geminiService';
+import { getCarHighlights, getNearbyDestinations } from '../../services/geminiService';
 import { CarGallery } from './CarGallery';
 import { BookingCalendar } from './BookingCalendar';
+import ReactMarkdown from 'react-markdown'; // Assuming simple rendering or direct text
 
 const MOCK_REVIEWS = [
     {
@@ -83,6 +84,10 @@ export const CarDetails = ({ car, currency, onClose, language, onCheckout }: Car
     const [loadingAi, setLoadingAi] = useState(true);
     const [isFav, setIsFav] = useState(false);
     
+    // Grounding State
+    const [nearbyPlaces, setNearbyPlaces] = useState<{text: string, chunks: any[]} | null>(null);
+    const [loadingPlaces, setLoadingPlaces] = useState(true);
+    
     // Interactive State
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const [showAllFeatures, setShowAllFeatures] = useState(false);
@@ -145,6 +150,16 @@ export const CarDetails = ({ car, currency, onClose, language, onCheckout }: Car
         };
         fetchHighlights();
     }, [car]);
+
+    useEffect(() => {
+        const fetchNearby = async () => {
+            setLoadingPlaces(true);
+            const results = await getNearbyDestinations(car.location);
+            setNearbyPlaces(results);
+            setLoadingPlaces(false);
+        }
+        fetchNearby();
+    }, [car.location]);
 
     // Scroll Spy for Tabs
     useEffect(() => {
@@ -494,7 +509,7 @@ export const CarDetails = ({ car, currency, onClose, language, onCheckout }: Car
                         </div>
                     </section>
 
-                     {/* Location - Updated to plain map without cards */}
+                     {/* Location & Nearby Places */}
                      <section id="location" className="border-t border-gray-100 dark:border-gray-800 pt-8 scroll-mt-24">
                         <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4">Location</h3>
                         <div 
@@ -512,13 +527,58 @@ export const CarDetails = ({ car, currency, onClose, language, onCheckout }: Car
                                 title="Car Location"
                                 loading="lazy"
                             />
-                            
-                            {/* No overlay cards, just hover effect */}
                             <div className="absolute inset-0 bg-black/0 hover:bg-black/5 transition-colors pointer-events-none"></div>
                         </div>
                         <div className="mt-4 text-sm text-gray-500 flex items-center gap-2">
                             <Info size={14} />
                             Vehicle may have a device that collects driving and location data.
+                        </div>
+
+                        {/* Maps Grounding Section */}
+                        <div className="mt-8 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center gap-2 mb-3">
+                                <MapPin className="text-tubo-orange h-5 w-5" />
+                                <h4 className="font-black text-gray-900 dark:text-white text-base">Explore nearby with Gemini</h4>
+                            </div>
+                            
+                            {loadingPlaces ? (
+                                <div className="space-y-2 animate-pulse">
+                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                                    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mt-3 w-full"></div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div className="text-sm text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
+                                        {nearbyPlaces?.text}
+                                    </div>
+                                    
+                                    {nearbyPlaces?.chunks && nearbyPlaces.chunks.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {nearbyPlaces.chunks.map((chunk: any, idx: number) => {
+                                                // Extract URL based on the actual structure provided by Google Maps tool
+                                                const uri = chunk.web?.uri || chunk.maps?.uri;
+                                                const title = chunk.web?.title || chunk.maps?.title || "View on Map";
+                                                
+                                                if (!uri) return null;
+                                                
+                                                return (
+                                                    <a 
+                                                        key={idx} 
+                                                        href={uri} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-3 py-1.5 rounded-full text-xs font-bold text-tubo-blue dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors shadow-sm"
+                                                    >
+                                                        <MapPin size={12} className="text-red-500" />
+                                                        {title}
+                                                    </a>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </section>
 

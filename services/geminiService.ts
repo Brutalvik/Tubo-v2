@@ -2,6 +2,17 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+const CITY_COORDS: Record<string, {latitude: number, longitude: number}> = {
+  'Bali, Indonesia': { latitude: -8.3405, longitude: 115.0920 },
+  'Jakarta, Indonesia': { latitude: -6.2088, longitude: 106.8456 },
+  'Kuala Lumpur, Malaysia': { latitude: 3.1390, longitude: 101.6869 },
+  'Singapore': { latitude: 1.3521, longitude: 103.8198 },
+  'Toronto, Canada': { latitude: 43.651070, longitude: -79.347015 },
+  'Vancouver, Canada': { latitude: 49.2827, longitude: -123.1207 },
+  'New York, USA': { latitude: 40.7128, longitude: -74.0060 },
+  'Los Angeles, USA': { latitude: 34.0522, longitude: -118.2437 }
+};
+
 export const generateCarDescription = async (make: string, model: string, year: number, location: string): Promise<string> => {
   try {
     const prompt = `
@@ -85,5 +96,32 @@ export const parseSearchQuery = async (query: string): Promise<{location: string
   } catch (error) {
     console.error("Gemini search parsing failed", error);
     return null;
+  }
+}
+
+export const getNearbyDestinations = async (location: string) => {
+  const coords = CITY_COORDS[location] || { latitude: -6.2088, longitude: 106.8456 }; // Default Jakarta
+  
+  try {
+      const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: `Suggest 3 specific, popular driving destinations or attractions near ${location} that would be great to visit with a rental car. Provide a 1 sentence description for each.`,
+          config: {
+              tools: [{ googleMaps: {} }],
+              toolConfig: {
+                  retrievalConfig: {
+                      latLng: coords
+                  }
+              }
+          }
+      });
+      
+      return {
+          text: response.text || "Explore the city with your car!",
+          chunks: response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
+      };
+  } catch (e) {
+      console.error("Gemini Maps Grounding failed", e);
+      return { text: "Could not load suggestions.", chunks: [] };
   }
 }
