@@ -7,27 +7,26 @@ import {
     updateProfile as updateFirebaseProfile
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { auth, db, googleProvider, appleProvider, isConfigValid } from '../firebaseConfig';
+import { auth, db, googleProvider, appleProvider } from '../firebaseConfig';
 import { UserProfile } from '../types';
 
 export const authService = {
   
-  // --- LOGIN ---
+  // --- LOGIN (Email/Password) ---
   login: async (email: string, password: string): Promise<UserProfile> => {
-    if (!isConfigValid()) throw new Error("Please update firebaseConfig.ts with your actual Firebase keys.");
-
+    // 1. Authenticate with Firebase Auth
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Fetch user profile from Firestore
+    // 2. Fetch extended profile from Firestore
     const userRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userRef);
 
     if (userSnap.exists()) {
         return userSnap.data() as UserProfile;
     } else {
-        // Fallback if firestore record is missing
-        return {
+        // Fallback if auth exists but firestore doc is missing (rare sync issue)
+        const fallbackProfile: UserProfile = {
             uid: user.uid,
             displayName: user.displayName || 'User',
             email: user.email || '',
@@ -35,29 +34,30 @@ export const authService = {
             role: 'GUEST',
             currency: 'USD',
             isHostRegistered: false,
-            joinDate: new Date().toLocaleDateString()
+            joinDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
         };
+        // Auto-heal: Create the missing doc
+        await setDoc(userRef, fallbackProfile);
+        return fallbackProfile;
     }
   },
 
   // --- REGISTER (Email/Password) ---
   register: async (firstName: string, lastName: string, email: string, password: string): Promise<UserProfile> => {
-    if (!isConfigValid()) throw new Error("Please update firebaseConfig.ts with your actual Firebase keys.");
-
     // 1. Create Auth User
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     const displayName = `${firstName} ${lastName}`;
 
-    // 2. Update Auth Profile
+    // 2. Update Auth Profile (Display Name)
     await updateFirebaseProfile(user, { displayName });
 
-    // 3. Create Firestore Document
+    // 3. Create Firestore Document for persistent user data
     const newUserProfile: UserProfile = {
       uid: user.uid,
       displayName: displayName,
       email: email,
-      photoURL: "",
+      photoURL: "", // Default empty, user can upload later
       role: 'GUEST',
       currency: 'USD',
       isHostRegistered: false,
@@ -71,22 +71,22 @@ export const authService = {
 
   // --- SOCIAL LOGIN (Google/Apple) ---
   socialLogin: async (providerName: 'google' | 'apple'): Promise<UserProfile> => {
-    if (!isConfigValid()) throw new Error("Please update firebaseConfig.ts with your actual Firebase keys.");
-
     const provider = providerName === 'google' ? googleProvider : appleProvider;
     
     try {
+        // 1. Trigger Popup
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
 
-        // Check if user exists in Firestore
+        // 2. Check if user profile exists in Firestore
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists()) {
+            // LOGIN: Return existing profile
             return userSnap.data() as UserProfile;
         } else {
-            // New Social User -> Create Profile
+            // REGISTRATION: Create new profile for this social user
             const newUserProfile: UserProfile = {
                 uid: user.uid,
                 displayName: user.displayName || 'Tubo User',
@@ -103,7 +103,7 @@ export const authService = {
         }
     } catch (error: any) {
         console.error("Social login error:", error);
-        throw error;
+        throw error; // Propagate error to UI
     }
   },
 
@@ -121,7 +121,7 @@ export const authService = {
     // Update Firestore
     await updateDoc(userRef, updates);
     
-    // Return updated local object
+    // Return updated object
     const snapshot = await getDoc(userRef);
     return snapshot.data() as UserProfile;
   }

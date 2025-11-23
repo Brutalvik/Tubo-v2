@@ -1,3 +1,4 @@
+
 // @ts-ignore
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
@@ -6,12 +7,12 @@ import { getFirestore } from "firebase/firestore";
 // TODO: Replace with your actual Firebase project configuration
 // Get these from https://console.firebase.google.com/
 export const firebaseConfig = {
-  apiKey: "demo-api-key", // REPLACE THIS
-  authDomain: "demo-project.firebaseapp.com", // REPLACE THIS
-  projectId: "demo-project", // REPLACE THIS
-  storageBucket: "demo-project.appspot.com", // REPLACE THIS
-  messagingSenderId: "00000000000", // REPLACE THIS
-  appId: "1:00000000000:web:0000000000000" // REPLACE THIS
+  apiKey: "AIzaSyDOC-REPLACE-THIS-WITH-YOUR-KEY",
+  authDomain: "your-project-id.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project-id.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef123456"
 };
 
 // Initialize Firebase
@@ -25,7 +26,7 @@ export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 export const appleProvider = new OAuthProvider('apple.com');
 
-// Helper to check if config is valid
+// Helper to check if config is valid (Optional, for UI warnings)
 export const isConfigValid = () => {
-  return firebaseConfig.apiKey !== "demo-api-key";
+  return firebaseConfig.apiKey !== "AIzaSyDOC-REPLACE-THIS-WITH-YOUR-KEY";
 };
