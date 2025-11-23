@@ -234,7 +234,6 @@ export default function App() {
       />
 
       {/* Main Scrollable Content Area */}
-      {/* Increased padding-bottom (pb-32) on mobile to ensure the last card clears the fixed bottom nav */}
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32 md:pb-0 bg-gray-50 dark:bg-gray-900">
         
         {/* Mobile Header - Scrollable with content, hidden on desktop */}
@@ -283,6 +282,7 @@ export default function App() {
                         handleBecomeHost={handleBecomeHost}
                         onLogin={() => setShowAuthModal(true)}
                         onLogout={handleLogout}
+                        onUpdateUser={setCurrentUser}
                      />
                   )}
                 </>

@@ -1,9 +1,10 @@
 
-import React from 'react';
-import { Banknote, Globe, Settings, CreditCard, MessageSquare, LogOut, User } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Banknote, Globe, Settings, CreditCard, MessageSquare, LogOut, User, Camera, Loader2 } from 'lucide-react';
 import { Currency, UserProfile } from '../../types';
 import { MenuButton } from '../common/MenuButton';
 import { SettingsSelector } from '../common/SettingsSelector';
+import { authService } from '../../services/authService';
 
 interface ProfileViewProps {
     user: UserProfile | null;
@@ -17,6 +18,7 @@ interface ProfileViewProps {
     handleBecomeHost: () => void;
     onLogin: () => void;
     onLogout: () => void;
+    onUpdateUser?: (user: UserProfile) => void;
 }
 
 export const ProfileView = ({ 
@@ -30,8 +32,40 @@ export const ProfileView = ({
     handleRoleSwitch, 
     handleBecomeHost,
     onLogin,
-    onLogout
+    onLogout,
+    onUpdateUser
 }: ProfileViewProps) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploading, setUploading] = useState(false);
+
+    const handleImageClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+
+        setUploading(true);
+        
+        // Convert to Base64
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            try {
+                const base64String = reader.result as string;
+                // Call API
+                const updatedUser = await authService.updateProfile({ photoURL: base64String });
+                // Update Parent State
+                if (onUpdateUser) onUpdateUser(updatedUser);
+            } catch (err) {
+                console.error("Upload failed", err);
+                alert("Failed to upload image");
+            } finally {
+                setUploading(false);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
 
     if (!user) {
         return (
@@ -49,7 +83,6 @@ export const ProfileView = ({
                     Log in or Sign up
                 </button>
 
-                 {/* Preferences Section (Visible even when logged out) */}
                  <div className="w-full mt-12 text-left">
                     <h3 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest mb-3 ml-1">{t.preferences}</h3>
                     <div className="space-y-2">
@@ -78,11 +111,32 @@ export const ProfileView = ({
     return (
         <div className="px-5 pb-10 md:max-w-2xl md:mx-auto md:mt-10">
             <div className="flex items-center gap-4 mb-8 mt-2">
-                <img 
-                    src={user.photoURL || "https://i.pravatar.cc/150?u=default"} 
-                    className="h-20 w-20 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover" 
-                    alt="Profile" 
-                />
+                <div className="relative group cursor-pointer" onClick={handleImageClick}>
+                    {uploading ? (
+                         <div className="h-20 w-20 rounded-full border-4 border-white dark:border-gray-800 shadow-lg bg-gray-200 flex items-center justify-center">
+                            <Loader2 className="animate-spin text-gray-500" />
+                         </div>
+                    ) : (
+                        <>
+                            <img 
+                                src={user.photoURL || "https://i.pravatar.cc/150?u=default"} 
+                                className="h-20 w-20 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover group-hover:opacity-80 transition-opacity" 
+                                alt="Profile" 
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Camera className="text-white h-6 w-6" />
+                            </div>
+                        </>
+                    )}
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={handleFileChange}
+                    />
+                </div>
+                
                 <div>
                     <h2 className="text-2xl font-black text-tubo-blue dark:text-white">{user.displayName}</h2>
                     <p className="text-sm text-gray-500 font-medium">Joined {user.joinDate || 'recently'}</p>
