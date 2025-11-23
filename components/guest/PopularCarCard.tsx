@@ -4,7 +4,14 @@ import { Car, Currency } from '../../types';
 import { EXCHANGE_RATES } from '../../constants';
 import { FeatureIcon } from '../common/FeatureIcon';
 
-export const PopularCarCard = ({ car, currency, t, onSelect }: { car: Car, currency: Currency, t: any, onSelect: () => void }) => {
+interface PopularCarCardProps {
+    car: Car;
+    currency: Currency;
+    t: any;
+    onSelect: () => void;
+}
+
+export const PopularCarCard: React.FC<PopularCarCardProps> = ({ car, currency, t, onSelect }) => {
     const rate = EXCHANGE_RATES[currency] || 1;
     const convertedPrice = Math.round(car.pricePerDayIdr * rate);
     const [isFav, setIsFav] = useState(false);

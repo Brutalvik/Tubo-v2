@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
     ArrowLeft, ShieldCheck, CreditCard, Info, 
     CheckCircle, ChevronDown, Plus, Car as CarIcon,
-    Calendar as CalendarIcon, MapPin, Loader2, Lock
+    Calendar as CalendarIcon, MapPin, Loader2, Lock, AlertCircle
 } from 'lucide-react';
 import { Car, Currency } from '../../types';
 import { EXCHANGE_RATES } from '../../constants';
@@ -25,6 +25,22 @@ export const CheckoutView = ({
     const [rateOption, setRateOption] = useState<'non-refundable' | 'refundable'>('non-refundable');
     const [paymentMethod, setPaymentMethod] = useState<'card' | 'gpay'>('card');
     const [isProcessing, setIsProcessing] = useState(false);
+
+    // Form Data State
+    const [formData, setFormData] = useState({
+        countryCode: 'ID +62',
+        mobile: '',
+        email: '',
+        firstName: '',
+        lastName: '',
+        age: '',
+        cardNumber: '',
+        expiry: '',
+        cvc: '',
+        cardCountry: 'Indonesia'
+    });
+
+    const [errors, setErrors] = useState<Record<string, string>>({});
     
     // Price Calculations
     const rate = EXCHANGE_RATES[currency] || 1;
@@ -55,13 +71,74 @@ export const CheckoutView = ({
         return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     };
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        // Clear error when user types
+        if (errors[name]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+    };
+
+    const validate = () => {
+        const newErrors: Record<string, string> = {};
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phoneRegex = /^[0-9+\-\s()]*$/;
+
+        if (!formData.mobile.trim()) newErrors.mobile = "Mobile number is required";
+        else if (!phoneRegex.test(formData.mobile)) newErrors.mobile = "Invalid mobile format";
+
+        if (!formData.email.trim()) newErrors.email = "Email is required";
+        else if (!emailRegex.test(formData.email)) newErrors.email = "Invalid email address";
+
+        if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
+        if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
+        if (!formData.age || formData.age === "Select your age") newErrors.age = "Age is required";
+
+        if (paymentMethod === 'card') {
+            const cleanCard = formData.cardNumber.replace(/\D/g, '');
+            if (!cleanCard) newErrors.cardNumber = "Card number is required";
+            else if (cleanCard.length < 13 || cleanCard.length > 19) newErrors.cardNumber = "Invalid card length";
+
+            if (!formData.expiry.trim()) newErrors.expiry = "Expiration is required";
+            // Simple MM/YY check could be added here
+            
+            if (!formData.cvc.trim()) newErrors.cvc = "CVC is required";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleBookClick = () => {
-        setIsProcessing(true);
-        // Simulate payment processing delay
-        setTimeout(() => {
-            setIsProcessing(false);
-            onBook(finalTotal);
-        }, 3000);
+        if (validate()) {
+            setIsProcessing(true);
+            // Simulate payment processing delay
+            setTimeout(() => {
+                setIsProcessing(false);
+                onBook(finalTotal);
+            }, 3000);
+        } else {
+            // Scroll to top or first error could be implemented here
+            const firstError = document.querySelector('.border-red-500');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    };
+
+    const InputError = ({ field }: { field: string }) => {
+        if (!errors[field]) return null;
+        return (
+            <div className="flex items-center gap-1 mt-1.5 text-red-500 text-xs font-bold animate-in slide-in-from-top-1">
+                <AlertCircle size={12} />
+                <span>{errors[field]}</span>
+            </div>
+        );
     };
 
     return (
@@ -119,7 +196,12 @@ export const CheckoutView = ({
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 mb-1.5 block">Country</label>
                                     <div className="relative">
-                                        <select className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange transition-all">
+                                        <select 
+                                            name="countryCode"
+                                            value={formData.countryCode}
+                                            onChange={handleChange}
+                                            className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange transition-all"
+                                        >
                                             <option>ID +62</option>
                                             <option>US +1</option>
                                             <option>MY +60</option>
@@ -132,9 +214,13 @@ export const CheckoutView = ({
                                     <label className="text-xs font-bold text-gray-500 mb-1.5 block">Mobile number</label>
                                     <input 
                                         type="tel" 
+                                        name="mobile"
+                                        value={formData.mobile}
+                                        onChange={handleChange}
                                         placeholder="Mobile number"
-                                        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange transition-all placeholder:text-gray-400"
+                                        className={`w-full bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-400 ${errors.mobile ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange'}`}
                                     />
+                                    <InputError field="mobile" />
                                 </div>
                             </div>
                             
@@ -146,9 +232,13 @@ export const CheckoutView = ({
                                 <label className="text-xs font-bold text-gray-500 mb-1.5 block">Email</label>
                                 <input 
                                     type="email" 
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
                                     placeholder="Email"
-                                    className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange transition-all placeholder:text-gray-400"
+                                    className={`w-full bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-400 ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange'}`}
                                 />
+                                <InputError field="email" />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -156,24 +246,37 @@ export const CheckoutView = ({
                                     <label className="text-xs font-bold text-gray-500 mb-1.5 block">First name</label>
                                     <input 
                                         type="text" 
+                                        name="firstName"
+                                        value={formData.firstName}
+                                        onChange={handleChange}
                                         placeholder="Driver's license first name"
-                                        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange transition-all placeholder:text-gray-400"
+                                        className={`w-full bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-400 ${errors.firstName ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange'}`}
                                     />
+                                    <InputError field="firstName" />
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 mb-1.5 block">Last name</label>
                                     <input 
                                         type="text" 
+                                        name="lastName"
+                                        value={formData.lastName}
+                                        onChange={handleChange}
                                         placeholder="Driver's license last name"
-                                        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange transition-all placeholder:text-gray-400"
+                                        className={`w-full bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-400 ${errors.lastName ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange'}`}
                                     />
+                                    <InputError field="lastName" />
                                 </div>
                             </div>
 
                             <div>
                                 <label className="text-xs font-bold text-gray-500 mb-1.5 block">Age</label>
                                 <div className="relative">
-                                    <select className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange transition-all text-gray-400">
+                                    <select 
+                                        name="age"
+                                        value={formData.age}
+                                        onChange={handleChange}
+                                        className={`w-full appearance-none bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none transition-all ${errors.age ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange text-gray-400'}`}
+                                    >
                                         <option>Select your age</option>
                                         <option>18-20</option>
                                         <option>21-24</option>
@@ -181,6 +284,7 @@ export const CheckoutView = ({
                                     </select>
                                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                                 </div>
+                                <InputError field="age" />
                             </div>
 
                             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl flex gap-3">
@@ -325,8 +429,11 @@ export const CheckoutView = ({
                                     <div className="relative">
                                         <input 
                                             type="text" 
+                                            name="cardNumber"
+                                            value={formData.cardNumber}
+                                            onChange={handleChange}
                                             placeholder="1234 1234 1234 1234"
-                                            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange transition-all"
+                                            className={`w-full bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none transition-all ${errors.cardNumber ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange'}`}
                                         />
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-1">
                                             <div className="w-8 h-5 bg-blue-900 rounded"></div>
@@ -334,32 +441,46 @@ export const CheckoutView = ({
                                             <div className="w-8 h-5 bg-orange-500 rounded"></div>
                                         </div>
                                     </div>
+                                    <InputError field="cardNumber" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-xs font-bold text-gray-500 mb-1.5 block">Expiration date</label>
                                         <input 
                                             type="text" 
+                                            name="expiry"
+                                            value={formData.expiry}
+                                            onChange={handleChange}
                                             placeholder="MM / YY"
-                                            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange transition-all"
+                                            className={`w-full bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none transition-all ${errors.expiry ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange'}`}
                                         />
+                                        <InputError field="expiry" />
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-gray-500 mb-1.5 block">Security code</label>
                                         <div className="relative">
                                             <input 
                                                 type="text" 
+                                                name="cvc"
+                                                value={formData.cvc}
+                                                onChange={handleChange}
                                                 placeholder="CVC"
-                                                className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange transition-all"
+                                                className={`w-full bg-white dark:bg-gray-800 border rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none transition-all ${errors.cvc ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-tubo-orange focus:ring-1 focus:ring-tubo-orange'}`}
                                             />
                                             <CreditCard className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                         </div>
+                                        <InputError field="cvc" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 mb-1.5 block">Country</label>
                                     <div className="relative">
-                                        <select className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange transition-all">
+                                        <select 
+                                            name="cardCountry"
+                                            value={formData.cardCountry}
+                                            onChange={handleChange}
+                                            className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 font-medium text-gray-900 dark:text-white outline-none focus:border-tubo-orange transition-all"
+                                        >
                                             <option>Indonesia</option>
                                             <option>United States</option>
                                         </select>

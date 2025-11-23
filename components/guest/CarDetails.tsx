@@ -217,7 +217,7 @@ export const CarDetails = ({ car, currency, onClose, language, onCheckout }: Car
         setEndDate(end);
     };
 
-    const FeatureItem = ({ name }: { name: string }) => {
+    const FeatureItem: React.FC<{ name: string }> = ({ name }) => {
         let Icon = Settings2;
         if (name.toLowerCase().includes('ac') || name.toLowerCase().includes('climate')) Icon = Wind;
         else if (name.toLowerCase().includes('bluetooth') || name.toLowerCase().includes('carplay')) Icon = Bluetooth;

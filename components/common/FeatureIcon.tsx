@@ -1,7 +1,12 @@
 import React from 'react';
 import { Settings2, Wind, Bluetooth, Users, Zap, Fuel, Music } from 'lucide-react';
 
-export const FeatureIcon = ({ name, className }: { name: string, className?: string }) => {
+interface FeatureIconProps {
+    name: string;
+    className?: string;
+}
+
+export const FeatureIcon: React.FC<FeatureIconProps> = ({ name, className }) => {
     const lower = name.toLowerCase();
     let Icon = Settings2; // Default
 
